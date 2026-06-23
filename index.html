@@ -1117,6 +1117,23 @@
                                 <option value="کارتۆن">کارتۆن</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>🗃️ بڕی پاکێت (ئەگەر هەبێت):</label>
+                            <input type="number" id="productPackageSize" class="form-control" placeholder="بۆ نموونە ١٢ یان ٢٤" min="2" step="1" oninput="togglePackagePriceRow()">
+                            <small style="color:#888; font-size:12px;">ئەگەر پڕکرایەوە، خانەی نرخی پاکێت دەردەکەوێت</small>
+                        </div>
+                    </div>
+                    <div class="form-row" id="packagePriceRow" style="display:none;">
+                        <div class="form-group">
+                            <label>💰 نرخی فرۆشتنی پاکێت:</label>
+                            <input type="number" id="productPackagePrice" class="form-control" placeholder="نرخی تایبەتی پاکێت..." min="0">
+                            <small style="color:#888; font-size:12px;">ئەگەر بەتاڵ بهێڵیتەوە: نرخ × بڕی پاکێت</small>
+                        </div>
+                        <div class="form-group">
+                            <label>💸 نرخی کڕینی پاکێت:</label>
+                            <input type="number" id="productPackageCost" class="form-control" placeholder="تێچوونی پاکێت..." min="0">
+                            <small style="color:#888; font-size:12px;">ئەگەر بەتاڵ بهێڵیتەوە: نرخی کڕین × بڕی پاکێت</small>
+                        </div>
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn btn-success" onclick="addProduct()" style="flex: 1;">💾 پاشەکەوت</button>
@@ -1979,6 +1996,7 @@
 
             grid.innerHTML = filtered.map(p => {
                 const stockClass = p.quantity <= 0 ? 'out' : (p.quantity <= p.alert ? 'low' : '');
+                const pkgSize = p.packageSize || 0;
                 return `
                     <button class="product-btn" 
                             onclick="addToCart('${p.id}')">
@@ -1986,6 +2004,7 @@
                         <div class="product-name">${p.name}</div>
                         <div class="product-price">${p.price.toLocaleString()} د.ع</div>
                         ${p.quantity <= 0 ? '<small style="color: red;">کۆگا نەماوە</small>' : ''}
+                        ${pkgSize >= 2 ? '<small style="color:#764ba2;font-size:11px;">📦پاکێت هەیە</small>' : ''}
                     </button>
                 `;
             }).join('');
@@ -2025,9 +2044,103 @@
             updateCart();
         }
 
+        // فرۆشتنی پاکێت: بە نرخی تایبەتی پاکێت، یەک ئایتمی پاکێت زیاد دەکرێت
+        async function addToCartPkg(productId, pkgSize) {
+            const products = await syncProducts();
+            const product = products.find(p => p.id === productId);
+
+            if (!product) {
+                showToast('کاڵا نەدۆزرایەوە!', 'error');
+                return;
+            }
+
+            // نرخی پاکێت: ئەگەر packagePrice تایبەتی هەبێت بەکاردێت، وەکوو نەبێت: price × pkgSize
+            const pkgSellPrice = (product.packagePrice > 0) ? product.packagePrice : (product.price * pkgSize);
+            const pkgCostPrice = (product.packageCost > 0) ? product.packageCost : (product.cost * pkgSize);
+            const pkgCartKey = productId + '__pkg';
+
+            const existingItem = cart.find(item => item.productId === pkgCartKey);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({
+                    productId: pkgCartKey,
+                    name: product.name + ` 📦(${pkgSize}دانە)`,
+                    price: pkgSellPrice,
+                    cost: pkgCostPrice,
+                    barcode: product.barcode,
+                    unit: 'پاکێت',
+                    quantity: 1,
+                    _realProductId: productId,
+                    _pkgSize: pkgSize
+                });
+            }
+
+            const totalDaneUsed = (existingItem ? existingItem.quantity : 1) * pkgSize;
+            if (product.quantity - totalDaneUsed < 0) {
+                showToast(`⚠️ ${product.name}: کۆگا نامێنێت`, 'warning');
+            } else {
+                showToast(`✅ پاکێت زیادکرا: ${product.name} — ${pkgSellPrice.toLocaleString()} د.ع`);
+            }
+
+            updateCart();
+        }
+
         function removeFromCart(index) {
             cart.splice(index, 1);
             updateCart();
+        }
+
+        // گۆڕانی ئایتمی دانەیی بۆ پاکێت لە سەبەتەکەدا
+        async function switchToPkg(index, realProductId, pkgSize) {
+            const products = await syncProducts();
+            const product = products.find(p => p.id === realProductId);
+            if (!product) return;
+
+            const pkgSellPrice = (product.packagePrice > 0) ? product.packagePrice : (product.price * pkgSize);
+            const pkgCostPrice = (product.packageCost > 0) ? product.packageCost : (product.cost * pkgSize);
+
+            // ژمارەی دانە پێشتر لە سەبەتە بەکارهاتووە بۆ حیسابکردنی ژمارەی پاکێت
+            const prevQty = cart[index].quantity;
+            const pkgCount = Math.max(1, Math.round(prevQty / pkgSize));
+
+            cart[index] = {
+                productId: realProductId + '__pkg',
+                name: product.name + ` 📦(${pkgSize}دانە)`,
+                price: pkgSellPrice,
+                cost: pkgCostPrice,
+                barcode: product.barcode,
+                unit: 'پاکێت',
+                quantity: pkgCount,
+                _realProductId: realProductId,
+                _pkgSize: pkgSize
+            };
+            updateCart();
+            showToast(`📦 گۆڕدرا بۆ پاکێت: ${product.name}`);
+        }
+
+        // گۆڕانی ئایتمی پاکێت بۆ دانەیی لە سەبەتەکەدا
+        async function switchToUnit(index) {
+            const item = cart[index];
+            const products = await syncProducts();
+            const product = products.find(p => p.id === item._realProductId);
+            if (!product) return;
+
+            const prevPkgQty = item.quantity;
+            const daneQty = prevPkgQty * (item._pkgSize || 1);
+
+            cart[index] = {
+                productId: item._realProductId,
+                name: product.name,
+                price: product.price,
+                cost: product.cost || 0,
+                barcode: product.barcode,
+                unit: product.unit || 'دانە',
+                quantity: daneQty
+            };
+            updateCart();
+            showToast(`🔢 گۆڕدرا بۆ دانەیی: ${product.name}`);
         }
 
         async function updateQuantity(index, newQty) {
@@ -2053,13 +2166,45 @@
             if (cart.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">سەبەتە بەتاڵە</td></tr>';
             } else {
+                // products cache for package info
+                const cachedProducts = JSON.parse(localStorage.getItem('products') || '[]');
                 tbody.innerHTML = cart.map((item, index) => {
                     const total = item.price * item.quantity;
                     const unitLabel = item.unit || 'دانە';
                     const isWeight = ['کیلو','گرام','لیتر','مەتر'].includes(unitLabel);
+                    const isPkg = !!item._pkgSize;
+
+                    // ئایا کاڵاکە پاکێتی هەیە و ئێستا دانەیی فرۆشراوە؟
+                    const realId = item._realProductId || item.productId;
+                    const srcProduct = cachedProducts.find(p => p.id === realId);
+                    const hasPkg = srcProduct && (srcProduct.packageSize >= 2);
+                    const pkgSize = hasPkg ? srcProduct.packageSize : 0;
+                    const pkgPrice = hasPkg ? ((srcProduct.packagePrice > 0) ? srcProduct.packagePrice : (srcProduct.price * pkgSize)) : 0;
+
+                    // دوگمەی گۆڕان: ئەگەر دانەیی بێت و پاکێتی هەیە → نیشان بدە "گۆڕانی بۆ پاکێت"
+                    // ئەگەر پاکێت بێت → نیشان بدە "گۆڕانی بۆ دانە"
+                    let switchBtn = '';
+                    if (!isPkg && hasPkg) {
+                        switchBtn = `<button onclick="switchToPkg(${index}, '${realId}', ${pkgSize})"
+                            title="گۆڕانی بۆ پاکێت: ${pkgPrice.toLocaleString()} د.ع"
+                            style="background:#764ba2;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;margin-top:3px;display:block;width:100%;">
+                            📦×${pkgSize}
+                        </button>`;
+                    } else if (isPkg) {
+                        switchBtn = `<button onclick="switchToUnit(${index})"
+                            title="گۆڕانی بۆ دانەیی"
+                            style="background:#667eea;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;margin-top:3px;display:block;width:100%;">
+                            🔢 دانە
+                        </button>`;
+                    }
+
                     return `
-                        <tr>
-                            <td>${item.name} <small style="color:#667eea;">(${unitLabel})</small></td>
+                        <tr style="${isPkg ? 'background:#f3effe;' : ''}">
+                            <td>
+                                ${item.name}
+                                <small style="color:${isPkg ? '#764ba2' : '#667eea'};">(${unitLabel})</small>
+                                ${switchBtn}
+                            </td>
                             <td>${item.price.toLocaleString()}</td>
                             <td>
                                 <input type="number" value="${item.quantity}" min="0.001" step="${isWeight ? '0.001' : '1'}"
@@ -2115,9 +2260,12 @@
 
             // Update product quantities
             for (const item of cart) {
-                const product = products.find(p => p.id === item.productId);
+                // پاکێتەکان: بەکارهێنانی _realProductId و _pkgSize بۆ کەمکردنەوەی کۆگای ڕاستەقینە
+                const realId = item._realProductId || item.productId;
+                const product = products.find(p => p.id === realId);
                 if (product) {
-                    product.quantity -= item.quantity;
+                    const deduct = item._pkgSize ? (item.quantity * item._pkgSize) : item.quantity;
+                    product.quantity -= deduct;
                     await saveProduct(product);
                 }
             }
@@ -2291,7 +2439,7 @@
                 return `
                 <tr class="${rowClass}">
                     <td>${p.barcode}${(Array.isArray(p.extraBarcodes) && p.extraBarcodes.length) ? ` <span style="color:#667eea; font-size:11px;" title="${p.extraBarcodes.join(', ')}">(+${p.extraBarcodes.length})</span>` : ''}</td>
-                    <td>${p.name}</td>
+                    <td>${p.name}${p.packageSize >= 2 ? ` <span style="background:#764ba2;color:white;border-radius:8px;padding:2px 6px;font-size:11px;">📦${p.packageSize}</span>` : ''}</td>
                     <td>${p.price.toLocaleString()}</td>
                     <td>${p.cost.toLocaleString()}</td>
                     <td>
@@ -2338,6 +2486,12 @@
 
         // ==================== گۆڕینی نرخ بەکۆمەڵ بۆ هەموو کاڵاکان ====================
 
+        function togglePackagePriceRow() {
+            const pkgSize = parseFloat(document.getElementById('productPackageSize')?.value);
+            const row = document.getElementById('packagePriceRow');
+            if (row) row.style.display = (pkgSize >= 2) ? 'grid' : 'none';
+        }
+
         function showAddProductForm() {
             const form = document.getElementById('addProductForm');
             if (form) {
@@ -2348,6 +2502,11 @@
                 document.getElementById('productCost').value = '';
                 document.getElementById('productQuantity').value = '';
                 document.getElementById('productAlert').value = '5';
+                document.getElementById('productPackageSize').value = '';
+                document.getElementById('productPackagePrice').value = '';
+                document.getElementById('productPackageCost').value = '';
+                const row = document.getElementById('packagePriceRow');
+                if (row) row.style.display = 'none';
             }
         }
 
@@ -2382,6 +2541,13 @@
                 return;
             }
 
+            const packageSizeRaw = parseFloat(document.getElementById('productPackageSize')?.value);
+            const packageSize = (!isNaN(packageSizeRaw) && packageSizeRaw >= 2) ? packageSizeRaw : 0;
+            const packagePriceRaw = parseFloat(document.getElementById('productPackagePrice')?.value);
+            const packagePrice = (packageSize >= 2 && !isNaN(packagePriceRaw) && packagePriceRaw > 0) ? packagePriceRaw : 0;
+            const packageCostRaw = parseFloat(document.getElementById('productPackageCost')?.value);
+            const packageCost = (packageSize >= 2 && !isNaN(packageCostRaw) && packageCostRaw > 0) ? packageCostRaw : 0;
+
             const newProduct = {
                 id: Date.now().toString(),
                 barcode,
@@ -2390,7 +2556,10 @@
                 cost,
                 quantity,
                 alert: alertLevel,
-                unit: unit
+                unit: unit,
+                packageSize: packageSize,
+                packagePrice: packagePrice,
+                packageCost: packageCost
             };
 
             await saveProduct(newProduct);
@@ -2419,10 +2588,23 @@
             
             const newAlert = prompt('ئاستی ئاگادارکردنەوە:', product.alert);
 
+            const newPkg = prompt('بڕی پاکێت (ئەگەر هەبێت، بنووسە. ئەگەر نییە 0 بنووسە):', product.packageSize || 0);
+            let newPkgPrice = null, newPkgCost = null;
+            if (newPkg !== null && parseFloat(newPkg) >= 2) {
+                newPkgPrice = prompt('نرخی فرۆشتنی پاکێت (ئەگەر تایبەتی هەیە بنووسە، وەکوو نەبێت 0 بنووسە):', product.packagePrice || 0);
+                newPkgCost = prompt('نرخی کڕینی پاکێت (تێچوون، ئەگەر تایبەتی هەیە بنووسە، وەکوو نەبێت 0 بنووسە):', product.packageCost || 0);
+            }
+
             product.name = newName || product.name;
             product.price = parseFloat(newPrice) || product.price;
             product.cost = parseFloat(newCost) || product.cost;
             product.alert = parseInt(newAlert) || product.alert;
+            if (newPkg !== null) {
+                const pkg = parseFloat(newPkg);
+                product.packageSize = (!isNaN(pkg) && pkg >= 2) ? pkg : 0;
+                product.packagePrice = (newPkgPrice !== null && parseFloat(newPkgPrice) > 0) ? parseFloat(newPkgPrice) : 0;
+                product.packageCost = (newPkgCost !== null && parseFloat(newPkgCost) > 0) ? parseFloat(newPkgCost) : 0;
+            }
 
             await saveProduct(product);
             await loadProducts();
