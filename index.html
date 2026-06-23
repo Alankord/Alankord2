@@ -1065,7 +1065,7 @@
                         <option value="value-desc">بەها: زۆرترین یەکەم</option>
                     </select>
                     <button class="export-btn" onclick="exportInventoryCSV()">⬇️ دەرهێنانی CSV</button>
-                    <button class="btn btn-warning" style="width: auto;" onclick="openBulkPriceModal()">💲 گۆڕینی نرخ بەکۆمەڵ</button>
+
                 </div>
 
                 <!-- فۆڕمی زیادکردنی کاڵا -->
@@ -1357,53 +1357,6 @@
         </div>
     </div>
 
-    <!-- مۆداڵی گۆڕینی نرخ بەکۆمەڵ -->
-    <div class="scanner-modal" id="bulkPriceModal">
-        <div class="scanner-modal-content" style="max-width: 480px; text-align: right;">
-            <h3 style="text-align:center;">💲 گۆڕینی نرخی کاڵاکان بەکۆمەڵ</h3>
-            <p style="color:#666; font-size:13px; text-align:center; margin:5px 0 15px;">هەموو نرخی کڕین یان فرۆشتنی کاڵاکان بە یەک جار بگۆڕە</p>
-
-            <div class="form-group">
-                <label>کام نرخ بگۆڕدرێت؟</label>
-                <select id="bulkPriceField" class="form-control" onchange="updateBulkPricePreview()">
-                    <option value="price">نرخی فرۆشتن</option>
-                    <option value="cost">نرخی کڕین</option>
-                    <option value="both">هەردووکیان (فرۆشتن و کڕین)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>شێوازی گۆڕین:</label>
-                <select id="bulkPriceMethod" class="form-control" onchange="updateBulkPricePreview()">
-                    <option value="inc-percent">زیادکردن بە ڕێژەی سەدی (%)</option>
-                    <option value="dec-percent">کەمکردنەوە بە ڕێژەی سەدی (%)</option>
-                    <option value="inc-amount">زیادکردن بە بڕی دینار</option>
-                    <option value="dec-amount">کەمکردنەوە بە بڕی دینار</option>
-                    <option value="set-fixed">دانانی نرخی نوێ بۆ هەمووی (یەک نرخ)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label id="bulkPriceValueLabel">بڕ یان ڕێژە:</label>
-                <input type="number" id="bulkPriceValue" class="form-control" placeholder="0" oninput="updateBulkPricePreview()">
-            </div>
-
-            <div class="form-group">
-                <label>بۆ کام کاڵاکان؟</label>
-                <select id="bulkPriceScope" class="form-control" onchange="updateBulkPricePreview()">
-                    <option value="all">هەموو کاڵاکانی کۆگا</option>
-                    <option value="filtered">تەنها کاڵاکانی پیشاندراو لە لیستەکە (گەڕان/فلتەر)</option>
-                </select>
-            </div>
-
-            <p id="bulkPricePreview" style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:13px; color:#333; text-align:center;"></p>
-
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button class="btn btn-success" style="flex:1;" onclick="applyBulkPriceChange()">✅ جێبەجێکردن</button>
-                <button class="btn btn-danger" style="flex:1;" onclick="closeBulkPriceModal()">❌ پاشگەزبوونەوە</button>
-            </div>
-        </div>
-    </div>
 
     <!-- تۆستی ئاگادارکردنەوە -->
     <div class="toast-container" id="toastContainer"></div>
@@ -2373,152 +2326,6 @@
         }
 
         // ==================== گۆڕینی نرخ بەکۆمەڵ بۆ هەموو کاڵاکان ====================
-        function openBulkPriceModal() {
-            const fieldEl = document.getElementById('bulkPriceField');
-            const methodEl = document.getElementById('bulkPriceMethod');
-            const valueEl = document.getElementById('bulkPriceValue');
-            const scopeEl = document.getElementById('bulkPriceScope');
-            if (fieldEl) fieldEl.value = 'price';
-            if (methodEl) methodEl.value = 'inc-percent';
-            if (valueEl) valueEl.value = '';
-            if (scopeEl) scopeEl.value = 'all';
-
-            const modal = document.getElementById('bulkPriceModal');
-            if (modal) modal.classList.add('active');
-            updateBulkPricePreview();
-        }
-
-        function closeBulkPriceModal() {
-            const modal = document.getElementById('bulkPriceModal');
-            if (modal) modal.classList.remove('active');
-        }
-
-        // وەرگرتنی لیستی کاڵاکان بەپێی بەشێ (هەموو یان تەنها ئەوانەی پیشاندراون لە لیستەکە)
-        async function getBulkScopeProducts(scope) {
-            const products = await syncProducts();
-            if (scope !== 'filtered') return products.slice();
-
-            const searchTerm = document.getElementById('productsSearchBox')?.value || '';
-            let filtered = searchTerm
-                ? products.filter(p =>
-                    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    p.barcode.includes(searchTerm) ||
-                    (Array.isArray(p.extraBarcodes) && p.extraBarcodes.some(b => b.includes(searchTerm)))
-                  )
-                : products.slice();
-
-            const filterVal = document.getElementById('invFilterSelect')?.value || 'all';
-            if (filterVal === 'low') {
-                filtered = filtered.filter(p => p.quantity > 0 && p.quantity <= p.alert);
-            } else if (filterVal === 'out') {
-                filtered = filtered.filter(p => p.quantity <= 0);
-            }
-            return filtered;
-        }
-
-        // ژماردنی نرخی نوێ بەپێی شێوازی هەڵبژێردراو
-        function calcBulkNewValue(oldVal, method, amount) {
-            oldVal = oldVal || 0;
-            let newVal = oldVal;
-            switch (method) {
-                case 'inc-percent': newVal = oldVal * (1 + amount / 100); break;
-                case 'dec-percent': newVal = oldVal * (1 - amount / 100); break;
-                case 'inc-amount': newVal = oldVal + amount; break;
-                case 'dec-amount': newVal = oldVal - amount; break;
-                case 'set-fixed': newVal = amount; break;
-            }
-            return Math.max(0, Math.round(newVal));
-        }
-
-        async function updateBulkPricePreview() {
-            const previewEl = document.getElementById('bulkPricePreview');
-            if (!previewEl) return;
-
-            const field = document.getElementById('bulkPriceField')?.value || 'price';
-            const method = document.getElementById('bulkPriceMethod')?.value || 'inc-percent';
-            const value = parseFloat(document.getElementById('bulkPriceValue')?.value);
-            const scope = document.getElementById('bulkPriceScope')?.value || 'all';
-
-            const valueLabel = document.getElementById('bulkPriceValueLabel');
-            if (valueLabel) {
-                valueLabel.textContent = (method === 'inc-percent' || method === 'dec-percent')
-                    ? 'ڕێژەی سەدی (%):'
-                    : 'بڕ بە دینار:';
-            }
-
-            const products = await getBulkScopeProducts(scope);
-
-            if (products.length === 0) {
-                previewEl.textContent = '⚠️ هیچ کاڵایەک لەم بەشەدا نییە';
-                return;
-            }
-
-            if (isNaN(value)) {
-                previewEl.textContent = `📦 ژمارەی کاڵای دەستکاریکراو: ${products.length}`;
-                return;
-            }
-
-            const sample = products[0];
-            const fieldLabel = field === 'price' ? 'نرخی فرۆشتن' : (field === 'cost' ? 'نرخی کڕین' : 'نرخی فرۆشتن و کڕین');
-            let exampleText = '';
-            if (field === 'both') {
-                const newPrice = calcBulkNewValue(sample.price, method, value);
-                const newCost = calcBulkNewValue(sample.cost, method, value);
-                exampleText = `${sample.name}: فرۆشتن ${(sample.price||0).toLocaleString()} ← ${newPrice.toLocaleString()}، کڕین ${(sample.cost||0).toLocaleString()} ← ${newCost.toLocaleString()}`;
-            } else {
-                const newVal = calcBulkNewValue(sample[field], method, value);
-                exampleText = `${sample.name}: ${fieldLabel} ${(sample[field]||0).toLocaleString()} ← ${newVal.toLocaleString()}`;
-            }
-
-            previewEl.innerHTML = `📦 ژمارەی کاڵای دەستکاریکراو: <b>${products.length}</b><br>نموونە: ${exampleText}`;
-        }
-
-        async function applyBulkPriceChange() {
-            const field = document.getElementById('bulkPriceField')?.value || 'price';
-            const method = document.getElementById('bulkPriceMethod')?.value || 'inc-percent';
-            const value = parseFloat(document.getElementById('bulkPriceValue')?.value);
-            const scope = document.getElementById('bulkPriceScope')?.value || 'all';
-
-            if (isNaN(value)) {
-                showToast('تکایە بڕ یان ڕێژەیەک بنووسە', 'error');
-                return;
-            }
-
-            const products = await getBulkScopeProducts(scope);
-            if (products.length === 0) {
-                showToast('هیچ کاڵایەک نییە بۆ گۆڕین', 'error');
-                return;
-            }
-
-            const fieldLabel = field === 'price' ? 'نرخی فرۆشتن' : (field === 'cost' ? 'نرخی کڕین' : 'نرخی فرۆشتن و کڕین');
-            const methodLabelMap = {
-                'inc-percent': `زیادکردنی ${value}%`,
-                'dec-percent': `کەمکردنەوەی ${value}%`,
-                'inc-amount': `زیادکردنی ${value.toLocaleString()} دینار`,
-                'dec-amount': `کەمکردنەوەی ${value.toLocaleString()} دینار`,
-                'set-fixed': `دانانی نرخی نوێی ${value.toLocaleString()} دینار بۆ هەمووی`
-            };
-
-            const confirmMsg = `دڵنیای دەتەوێت ${fieldLabel}ی ${products.length} کاڵا بگۆڕیت؟\nشێواز: ${methodLabelMap[method] || method}\n\n⚠️ ئەم کارە ناتوانرێت پاشگەزبکرێتەوە!`;
-            if (!confirm(confirmMsg)) return;
-
-            let updatedCount = 0;
-            for (const p of products) {
-                if (field === 'price' || field === 'both') {
-                    p.price = calcBulkNewValue(p.price, method, value);
-                }
-                if (field === 'cost' || field === 'both') {
-                    p.cost = calcBulkNewValue(p.cost, method, value);
-                }
-                await saveProduct(p);
-                updatedCount++;
-            }
-
-            closeBulkPriceModal();
-            await loadProducts(document.getElementById('productsSearchBox')?.value || '');
-            await displayProducts();
-            showToast(`✅ نرخی ${updatedCount} کاڵا گۆڕدرا بەسەرکەوتوویی`);
-        }
 
         function showAddProductForm() {
             const form = document.getElementById('addProductForm');
