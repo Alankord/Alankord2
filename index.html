@@ -1635,7 +1635,7 @@
                     async (decodedText) => {
                         // ڕێگری لە دووبارە خوێندنەوەی هەمان بارکۆد بە خێرایی (کاتێک کامێرا چەند چرکەیەک لەسەری دەمێنێتەوە)
                         const now = Date.now();
-                        if (decodedText === lastCameraScan.code && (now - lastCameraScan.time) < 1800) {
+                        if (decodedText === lastCameraScan.code && (now - lastCameraScan.time) < 2800) {
                             return;
                         }
                         lastCameraScan = { code: decodedText, time: now };
