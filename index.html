@@ -3227,8 +3227,12 @@
             const barcodeInput = document.getElementById('barcodeInput');
             
             if (barcodeInput) {
+                let scanTimer = null;
+
                 barcodeInput.addEventListener('keypress', async function(e) {
                     if (e.key === 'Enter') {
+                        // ڕاگرتنی debounce timer بۆ ئەوەی دووجار فایر نەکات
+                        if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
                         const barcode = this.value.trim();
                         if (barcode) {
                             await handleScannedBarcode(barcode);
@@ -3237,12 +3241,12 @@
                 });
 
                 // ئۆتۆماتیکی: ئەگەر سکانەر Enter نەنێرێت، چاوەڕێی وەستانی نووسین دەکەین (debounce)
-                // هەر پیتێک کە دێت کاتژمێرەکە لەسەر نوێ دەکرێتەوە، تەنیا کاتێک نووسین بە تەواوی وەستا (80ms) بارکۆدەکە دەسەلمێنین، بۆیە چیتر بارکۆدی پارچە-پارچە پشکنین ناکرێت
-                let scanTimer = null;
+                // هەر پیتێک کە دێت کاتژمێرەکە لەسەر نوێ دەکرێتەوە، تەنیا کاتێک نووسین بە تەواوی وەستا (80ms) بارکۆدەکە دەسەلمێنین
                 barcodeInput.addEventListener('input', function() {
                     if (scanTimer) clearTimeout(scanTimer);
                     if (this.value.trim().length < 8) return;
                     scanTimer = setTimeout(async () => {
+                        scanTimer = null;
                         const finalValue = this.value.trim();
                         if (finalValue.length >= 8) {
                             await handleScannedBarcode(finalValue);
