@@ -997,9 +997,10 @@
 
                         <!-- دوگمەکان -->
                         <div class="btn-group">
-                            <button class="btn btn-success" onclick="completeSale()">✅ فرۆشتن</button>
+                            <button class="btn btn-success" onclick="completeSale()" title="کلیلی کۆمپیوتەر: F9 یان Enter">✅ فرۆشتن (F9)</button>
                             <button class="btn btn-info" onclick="holdSale()">⏸️ راگرتن</button>
                         </div>
+                        <button class="btn btn-warning" onclick="printLastReceipt()" title="کلیلی کۆمپیوتەر: F10">🖨️ چاپکردنی دواین پسوولە (F10)</button>
                         <button class="btn btn-danger" onclick="clearCart()">🗑️ پاککردنەوە</button>
                     </div>
                 </div>
@@ -1635,7 +1636,7 @@
                     async (decodedText) => {
                         // ڕێگری لە دووبارە خوێندنەوەی هەمان بارکۆد بە خێرایی (کاتێک کامێرا چەند چرکەیەک لەسەری دەمێنێتەوە)
                         const now = Date.now();
-                        if (decodedText === lastCameraScan.code && (now - lastCameraScan.time) < 2800) {
+                        if (decodedText === lastCameraScan.code && (now - lastCameraScan.time) < 1800) {
                             return;
                         }
                         lastCameraScan = { code: decodedText, time: now };
@@ -1997,6 +1998,7 @@
         // ==================== بەشی فرۆشتن ====================
         let cart = [];
         let currentInvoiceNo = '';
+        let lastSale = null;
 
         function generateInvoiceNo() {
             const now = new Date();
@@ -2190,7 +2192,7 @@
                 }
             }
 
-            printReceipt(sale);
+            lastSale = sale;
 
             cart = [];
             const discountInput = document.getElementById('discountInput');
@@ -2203,11 +2205,19 @@
             const invoiceEl = document.getElementById('invoiceNo');
             if (invoiceEl) invoiceEl.textContent = currentInvoiceNo;
 
-            alert('✅ فرۆشتن بەسەرکەوتوویی تۆمارکرا!\nپسوولە: ' + invoiceNo);
+            showToast('✅ فرۆشتن بەسەرکەوتوویی تۆمارکرا! پسوولە: ' + invoiceNo);
         }
 
         function holdSale() {
             alert('⏸️ فرۆشتنەکە ڕاگیرا. دەتوانیت دواتر بەردەوامی پێبدەیت.');
+        }
+
+        function printLastReceipt() {
+            if (!lastSale) {
+                showToast('هیچ پسوولەیەک نییە بۆ چاپکردن', 'error');
+                return;
+            }
+            printReceipt(lastSale);
         }
 
         function printReceipt(sale) {
@@ -3226,14 +3236,18 @@
                     }
                 });
 
-                // ئۆتۆماتیکی: زۆربەی سکانەرە بارکۆدەکانی USB/بلوتووس بە خێرایی دەنووسن و Enter دادەگرن خۆکارانە
-                let lastTime = 0;
-                barcodeInput.addEventListener('input', async function() {
-                    const currentTime = Date.now();
-                    if (currentTime - lastTime < 30 && this.value.trim().length >= 8) {
-                        await handleScannedBarcode(this.value.trim());
-                    }
-                    lastTime = currentTime;
+                // ئۆتۆماتیکی: ئەگەر سکانەر Enter نەنێرێت، چاوەڕێی وەستانی نووسین دەکەین (debounce)
+                // هەر پیتێک کە دێت کاتژمێرەکە لەسەر نوێ دەکرێتەوە، تەنیا کاتێک نووسین بە تەواوی وەستا (80ms) بارکۆدەکە دەسەلمێنین، بۆیە چیتر بارکۆدی پارچە-پارچە پشکنین ناکرێت
+                let scanTimer = null;
+                barcodeInput.addEventListener('input', function() {
+                    if (scanTimer) clearTimeout(scanTimer);
+                    if (this.value.trim().length < 8) return;
+                    scanTimer = setTimeout(async () => {
+                        const finalValue = this.value.trim();
+                        if (finalValue.length >= 8) {
+                            await handleScannedBarcode(finalValue);
+                        }
+                    }, 80);
                 });
             }
 
@@ -3248,14 +3262,16 @@
                     }
                 });
 
-                let lastPbTime = 0;
+                let pbScanTimer = null;
                 productBarcodeInput.addEventListener('input', function() {
-                    const currentTime = Date.now();
-                    if (currentTime - lastPbTime < 30 && this.value.trim().length >= 8) {
-                        const nextField = document.getElementById('productPrice');
-                        if (nextField) setTimeout(() => nextField.focus(), 50);
-                    }
-                    lastPbTime = currentTime;
+                    if (pbScanTimer) clearTimeout(pbScanTimer);
+                    if (this.value.trim().length < 8) return;
+                    pbScanTimer = setTimeout(() => {
+                        if (this.value.trim().length >= 8) {
+                            const nextField = document.getElementById('productPrice');
+                            if (nextField) nextField.focus();
+                        }
+                    }, 80);
                 });
             }
 
@@ -3280,6 +3296,36 @@
             const toDate = document.getElementById('reportToDate');
             if (fromDate) fromDate.addEventListener('change', loadReports);
             if (toDate) toDate.addEventListener('change', loadReports);
+        });
+
+        // ==================== کلیلی کۆمپیوتەر بۆ فرۆشتن (جگە لە تاچ/کلیک) ====================
+        document.addEventListener('keydown', function(e) {
+            const posSection = document.getElementById('posSection');
+            const isPosActive = posSection && posSection.classList.contains('active');
+            if (!isPosActive) return;
+
+            const tag = (e.target.tagName || '').toLowerCase();
+            const isTypingField = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+
+            // F9: هەمیشە فرۆشتن تەواو دەکات، تەنانەت ئەگەر فۆکۆس لەسەر خانەی بارکۆد/گەڕان بێت
+            if (e.key === 'F9') {
+                e.preventDefault();
+                completeSale();
+                return;
+            }
+
+            // F10: چاپکردنی دواین پسوولە
+            if (e.key === 'F10') {
+                e.preventDefault();
+                printLastReceipt();
+                return;
+            }
+
+            // Enter: تەنیا کاتێک فۆکۆس لەسەر خانەیەکی نووسین نییە (بۆ ئەوەی سکانی بارکۆد و گەڕان تێکنەدرێت)
+            if (e.key === 'Enter' && !isTypingField) {
+                e.preventDefault();
+                completeSale();
+            }
         });
 
         // ==================== گۆڕینی بەشەکان ====================
