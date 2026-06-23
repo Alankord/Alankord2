@@ -2092,11 +2092,16 @@
             updateCart();
         }
 
+        let _saleProcessing = false;
+
         async function completeSale() {
+            if (_saleProcessing) return;
             if (cart.length === 0) {
                 alert('تکایە یەک کاڵا بەلانی کەمەوە زیادبکە!');
                 return;
             }
+            _saleProcessing = true;
+            try {
 
             const products = await syncProducts();
             const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -2159,6 +2164,12 @@
             if (invoiceEl) invoiceEl.textContent = currentInvoiceNo;
 
             showToast('✅ فرۆشتن بەسەرکەوتوویی تۆمارکرا! پسوولە: ' + invoiceNo);
+            } catch(err) {
+                console.error('completeSale error:', err);
+                showToast('❌ کێشەیەک ڕوویدا لە تۆمارکردنی فرۆشتن', 'error');
+            } finally {
+                _saleProcessing = false;
+            }
         }
 
         function holdSale() {
