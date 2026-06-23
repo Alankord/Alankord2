@@ -1664,13 +1664,8 @@
                     setTimeout(() => input.classList.remove('scan-error'), 800);
                 }
             }
-            // تەنها بگەرێوە بۆ خانەی بارکۆد ئەگەر کاربەر لە خانەی دیکەیەکدا نەبێت (بۆ ئەوەی سکانی دواتر ڕاستەوخۆ بکەوێتە ئەم خانەیە)
-            if (input) setTimeout(() => {
-                const active = document.activeElement;
-                const tag = active ? active.tagName.toLowerCase() : '';
-                const isOtherInput = (tag === 'input' || tag === 'textarea' || tag === 'select') && active !== input;
-                if (!isOtherInput) input.focus();
-            }, 100);
+            // هەمیشە خۆکارانە بگەرێوە بۆ خانەی بارکۆد، تاکوو سکانی دواتر (کامێرا یان USB/بلوتوس) ڕاستەوخۆ بکەوێتە ئەم خانەیە
+            if (input) setTimeout(() => input.focus(), 100);
         }
 
         // ==================== Data Functions ====================
