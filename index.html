@@ -590,6 +590,38 @@
             box-shadow: 0 0 15px rgba(220, 53, 69, 0.5) !important;
         }
 
+        /* نموونەکانی ئۆفلاین */
+        .offline-badge {
+            display: inline-block;
+            background: #f44336;
+            color: white;
+            font-size: 11px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            margin-right: 6px;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .offline-row {
+            background: #fff5f5 !important;
+            border-right: 4px solid #f44336;
+        }
+
+        .offline-row td {
+            color: #c62828 !important;
+        }
+
+        .synced-row {
+            animation: syncFlash 1.5s ease forwards;
+        }
+
+        @keyframes syncFlash {
+            0% { background: #e8f5e9; }
+            50% { background: #a5d6a7; }
+            100% { background: transparent; }
+        }
+
         /* مۆداڵی کامێرا */
         .scanner-modal {
             display: none;
@@ -704,6 +736,79 @@
 
         .profit-positive { color: #28a745; font-weight: bold; }
         .profit-negative { color: #dc3545; font-weight: bold; }
+
+        /* سیستەمی سێ کرین */
+        .cart-tabs-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px 10px;
+            background: #f0f2f5;
+            border-radius: 10px;
+        }
+        .cart-tab {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 14px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .cart-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .cart-tab:not(.active):hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        .cart-tab-badge {
+            background: #ffd700;
+            color: #333;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .cart-tab.active .cart-tab-badge {
+            background: rgba(255,255,255,0.8);
+        }
+        .cart-tab-close {
+            font-size: 12px;
+            opacity: 0.7;
+            padding: 1px 4px;
+            border-radius: 50%;
+        }
+        .cart-tab-close:hover {
+            opacity: 1;
+            background: rgba(220,53,69,0.25);
+        }
+        .cart-tab-add {
+            padding: 7px 14px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .cart-tab-add:hover {
+            background: #218838;
+        }
 
         /* خشتەی بارچارت سادە بۆ ڕاپۆرت */
         .bar-row {
@@ -936,6 +1041,8 @@
 
                 <!-- لای چەپ - سەبەتە -->
                 <div>
+                    <!-- تابی کرینەکان -->
+                    <div class="cart-tabs-bar" id="cartTabs"></div>
                     <div class="card">
                         <div class="card-header">
                             🛒 سەبەتەی کڕین
@@ -1541,11 +1648,27 @@
             }
         }
 
-        window.addEventListener('online', () => {
+        window.addEventListener('online', async () => {
+            updateConnectionStatus('syncing');
+            showToast('🔄 ئینتەرنێت گەڕایەوە، sync دەستپێدەکات...', 'success');
+            // یەکەم: پسوولەی ئۆفلاین بنێرە بۆ سێرڤەر
+            await processSyncQueue();
+            // دووەم: ئێستا لە سێرڤەر بخوێنەوە - پسوولەی ئۆفلاین ئێستا لە سێرڤەر هەن
+            await syncSales();
+            await syncReturns();
+            await syncProducts();
+            await syncCustomers();
             updateConnectionStatus('online');
-            processSyncQueue();
+            showToast('✅ sync تەواو بوو', 'success');
+            const reportsSection = document.getElementById('reportsSection');
+            if (reportsSection && reportsSection.classList.contains('active')) {
+                await loadReports();
+            }
         });
-        window.addEventListener('offline', () => updateConnectionStatus('offline'));
+        window.addEventListener('offline', () => {
+            updateConnectionStatus('offline');
+            showToast('📵 ئینتەرنێت بڕی - کار بەردەوامە بە شێوازی ئۆفلاین', 'error');
+        });
 
         // ==================== ئاگادارکردنەوەی خێرا (Toast) و دەنگ ====================
         function showToast(message, type = 'success') {
@@ -1687,8 +1810,12 @@
 
         // ==================== Data Functions ====================
         async function syncProducts() {
+            // ئەگەر ئۆفلاینین، ڕاستەوخۆ لە localStorage بخوێنەوە بەبێ چاوەڕێکردنی Firebase
+            if (!navigator.onLine) {
+                return JSON.parse(localStorage.getItem('products') || '[]');
+            }
             try {
-                const snapshot = await db.collection('products').get();
+                const snapshot = await db.collection('products').get({ source: 'server' });
                 const products = [];
                 snapshot.forEach(doc => {
                     products.push({ id: doc.id, ...doc.data() });
@@ -1702,23 +1829,22 @@
         }
 
         async function saveProduct(product) {
+            // هەمیشە ڕاستەوخۆ localStorage نوێ بکەرەوە (ئۆنلاین و ئۆفلاین هەردووکیان)
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const index = products.findIndex(p => p.id === product.id);
+            if (index >= 0) { products[index] = product; } else { products.push(product); }
+            localStorage.setItem('products', JSON.stringify(products));
+
+            if (!navigator.onLine) {
+                queueForSync('product', product);
+                return false;
+            }
             try {
                 await db.collection('products').doc(product.id.toString()).set(product);
-                // Update local cache
-                const products = await syncProducts();
                 return true;
             } catch (error) {
                 console.error('Error saving product:', error);
                 queueForSync('product', product);
-                // Save to localStorage immediately
-                const products = JSON.parse(localStorage.getItem('products') || '[]');
-                const index = products.findIndex(p => p.id === product.id);
-                if (index >= 0) {
-                    products[index] = product;
-                } else {
-                    products.push(product);
-                }
-                localStorage.setItem('products', JSON.stringify(products));
                 return false;
             }
         }
@@ -1735,8 +1861,11 @@
         }
 
         async function syncCustomers() {
+            if (!navigator.onLine) {
+                return JSON.parse(localStorage.getItem('customers') || '[]');
+            }
             try {
-                const snapshot = await db.collection('customers').get();
+                const snapshot = await db.collection('customers').get({ source: 'server' });
                 const customers = [];
                 snapshot.forEach(doc => {
                     customers.push({ id: doc.id, ...doc.data() });
@@ -1750,20 +1879,22 @@
         }
 
         async function saveCustomer(customer) {
+            // هەمیشە ڕاستەوخۆ localStorage نوێ بکەرەوە
+            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
+            const index = customers.findIndex(c => c.id === customer.id);
+            if (index >= 0) { customers[index] = customer; } else { customers.push(customer); }
+            localStorage.setItem('customers', JSON.stringify(customers));
+
+            if (!navigator.onLine) {
+                queueForSync('customer', customer);
+                return false;
+            }
             try {
                 await db.collection('customers').doc(customer.id.toString()).set(customer);
                 return true;
             } catch (error) {
                 console.error('Error saving customer:', error);
                 queueForSync('customer', customer);
-                const customers = JSON.parse(localStorage.getItem('customers') || '[]');
-                const index = customers.findIndex(c => c.id === customer.id);
-                if (index >= 0) {
-                    customers[index] = customer;
-                } else {
-                    customers.push(customer);
-                }
-                localStorage.setItem('customers', JSON.stringify(customers));
                 return false;
             }
         }
@@ -1780,17 +1911,27 @@
         }
 
         async function syncSales() {
+            if (!navigator.onLine) {
+                return JSON.parse(localStorage.getItem('sales') || '[]');
+            }
             try {
                 const snapshot = await db.collection('sales')
                     .orderBy('createdAt', 'desc')
                     .limit(500)
-                    .get();
-                const sales = [];
+                    .get({ source: 'server' });
+                const serverSales = [];
                 snapshot.forEach(doc => {
-                    sales.push({ id: doc.id, ...doc.data() });
+                    serverSales.push({ id: doc.id, offlineSaved: false, ...doc.data() });
                 });
-                localStorage.setItem('sales', JSON.stringify(sales));
-                return sales;
+
+                // تەنیا پسوولەی ئۆفلاین کە هێشتا لە سێرڤەر نییە نیشان بدە
+                const serverInvoiceNos = new Set(serverSales.map(s => s.invoiceNo));
+                const localSales = JSON.parse(localStorage.getItem('sales') || '[]');
+                const trulyPending = localSales.filter(s => s.offlineSaved === true && !serverInvoiceNos.has(s.invoiceNo));
+
+                const merged = [...trulyPending, ...serverSales];
+                localStorage.setItem('sales', JSON.stringify(merged));
+                return merged;
             } catch (error) {
                 console.error('Error syncing sales:', error);
                 return JSON.parse(localStorage.getItem('sales') || '[]');
@@ -1798,16 +1939,30 @@
         }
 
         async function saveSale(sale) {
+            if (!navigator.onLine) {
+                sale.offlineSaved = true;
+                sale.localId = sale.localId || ('local-' + Date.now());
+                queueForSync('sale', sale);
+                const sales = JSON.parse(localStorage.getItem('sales') || '[]');
+                sales.unshift(sale);
+                localStorage.setItem('sales', JSON.stringify(sales));
+                return false;
+            }
             try {
-                const docRef = await db.collection('sales').add(sale);
+                const saleData = Object.assign({}, sale);
+                delete saleData.localId;
+                delete saleData.offlineSaved;
+                const docRef = await db.collection('sales').add(saleData);
                 sale.id = docRef.id;
-                // Update local cache
+                sale.offlineSaved = false;
                 const sales = JSON.parse(localStorage.getItem('sales') || '[]');
                 sales.unshift(sale);
                 localStorage.setItem('sales', JSON.stringify(sales));
                 return true;
             } catch (error) {
                 console.error('Error saving sale:', error);
+                sale.offlineSaved = true;
+                sale.localId = sale.localId || ('local-' + Date.now());
                 queueForSync('sale', sale);
                 const sales = JSON.parse(localStorage.getItem('sales') || '[]');
                 sales.unshift(sale);
@@ -1818,14 +1973,17 @@
 
         // ==================== گەڕاندنەوەی فرۆشتن (Returns) ====================
         async function syncReturns() {
+            if (!navigator.onLine) {
+                return JSON.parse(localStorage.getItem('returns') || '[]');
+            }
             try {
                 const snapshot = await db.collection('returns')
                     .orderBy('createdAt', 'desc')
                     .limit(500)
-                    .get();
+                    .get({ source: 'server' });
                 const returns = [];
                 snapshot.forEach(doc => {
-                    returns.push({ id: doc.id, ...doc.data() });
+                    returns.push({ id: doc.id, offlineSaved: false, ...doc.data() });
                 });
                 localStorage.setItem('returns', JSON.stringify(returns));
                 return returns;
@@ -1836,15 +1994,30 @@
         }
 
         async function saveReturn(returnRecord) {
+            if (!navigator.onLine) {
+                returnRecord.offlineSaved = true;
+                returnRecord.localId = returnRecord.localId || ('local-' + Date.now());
+                queueForSync('returnSale', returnRecord);
+                const returns = JSON.parse(localStorage.getItem('returns') || '[]');
+                returns.unshift(returnRecord);
+                localStorage.setItem('returns', JSON.stringify(returns));
+                return false;
+            }
             try {
-                const docRef = await db.collection('returns').add(returnRecord);
+                const retData = Object.assign({}, returnRecord);
+                delete retData.localId;
+                delete retData.offlineSaved;
+                const docRef = await db.collection('returns').add(retData);
                 returnRecord.id = docRef.id;
+                returnRecord.offlineSaved = false;
                 const returns = JSON.parse(localStorage.getItem('returns') || '[]');
                 returns.unshift(returnRecord);
                 localStorage.setItem('returns', JSON.stringify(returns));
                 return true;
             } catch (error) {
                 console.error('Error saving return:', error);
+                returnRecord.offlineSaved = true;
+                returnRecord.localId = returnRecord.localId || ('local-' + Date.now());
                 queueForSync('returnSale', returnRecord);
                 const returns = JSON.parse(localStorage.getItem('returns') || '[]');
                 returns.unshift(returnRecord);
@@ -1865,7 +2038,6 @@
             if (queue.length === 0) return;
 
             updateConnectionStatus('syncing');
-            console.log(`Processing sync queue: ${queue.length} items`);
             const newQueue = [];
 
             for (const item of queue) {
@@ -1883,16 +2055,41 @@
                         case 'deleteCustomer':
                             await db.collection('customers').doc(item.data.id.toString()).delete();
                             break;
-                        case 'sale':
-                            await db.collection('sales').add(item.data);
+                        case 'sale': {
+                            const saleData = Object.assign({}, item.data);
+                            const invoiceNoToSync = saleData.invoiceNo;
+                            delete saleData.localId;
+                            delete saleData.offlineSaved;
+                            // بچەکبکە لە localStorage: ئەگەر پێشتر sync کراوە، دووجار مەنێرە
+                            const lsSalesBefore = JSON.parse(localStorage.getItem('sales') || '[]');
+                            const alreadySynced = lsSalesBefore.find(s => s.invoiceNo === invoiceNoToSync && s.offlineSaved === false && s.id && !s.id.startsWith('local-'));
+                            if (!alreadySynced) {
+                                const docRef = await db.collection('sales').add(saleData);
+                                // offlineSaved=false و ID ی ڕاستەقینە بنووسە
+                                const lsSales = JSON.parse(localStorage.getItem('sales') || '[]');
+                                const idx = lsSales.findIndex(s => s.invoiceNo === invoiceNoToSync);
+                                if (idx >= 0) { lsSales[idx].id = docRef.id; lsSales[idx].offlineSaved = false; delete lsSales[idx].localId; }
+                                localStorage.setItem('sales', JSON.stringify(lsSales));
+                            }
                             break;
-                        case 'returnSale':
-                            await db.collection('returns').add(item.data);
+                        }
+                        case 'returnSale': {
+                            const retData = Object.assign({}, item.data);
+                            const retInvoice = retData.invoiceNo;
+                            const retCreated = retData.createdAt;
+                            delete retData.localId;
+                            delete retData.offlineSaved;
+                            // بچەکبکە لە localStorage
+                            const lsRets = JSON.parse(localStorage.getItem('returns') || '[]');
+                            const dupRet = lsRets.find(r => r.invoiceNo === retInvoice && r.createdAt === retCreated && r.offlineSaved === false);
+                            if (!dupRet) {
+                                await db.collection('returns').add(retData);
+                            }
                             break;
+                        }
                     }
-                    console.log(`Synced: ${item.type}`);
                 } catch (error) {
-                    console.error(`Failed to sync ${item.type}:`, error);
+                    console.error('Failed to sync:', item.type, error);
                     newQueue.push(item);
                 }
             }
@@ -1908,6 +2105,44 @@
                 loadCustomers();
                 alert('✅ هاوکاتکردن تەواو بوو!');
             });
+        }
+
+        // پاککردنەوەی دووبارەکان لە localStorage
+        async function cleanupDuplicates() {
+            if (!confirm('⚠️ ئایا دڵنیایت؟ ئەم کردارە دووبارەکان لە ئەرشیفی ناوخۆیی دەسڕێتەوە.')) return;
+
+            // Sales: دووبارەکان بسڕەوە بەپێی invoiceNo
+            let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+            const seenSales = new Set();
+            sales = sales.filter(s => {
+                const key = s.id || s.localId || (s.invoiceNo + '|' + s.createdAt);
+                if (seenSales.has(key)) return false;
+                seenSales.add(key); return true;
+            });
+            localStorage.setItem('sales', JSON.stringify(sales));
+
+            // Returns
+            let returns = JSON.parse(localStorage.getItem('returns') || '[]');
+            const seenReturns = new Set();
+            returns = returns.filter(r => {
+                const key = r.id || r.localId || (r.invoiceNo + '|' + r.createdAt);
+                if (seenReturns.has(key)) return false;
+                seenReturns.add(key); return true;
+            });
+            localStorage.setItem('returns', JSON.stringify(returns));
+
+            // SyncQueue: دووبارەکان لاببە
+            let queue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
+            const seenQueue = new Set();
+            queue = queue.filter(item => {
+                const key = item.type + '|' + (item.data.localId || item.data.id || item.timestamp);
+                if (seenQueue.has(key)) return false;
+                seenQueue.add(key); return true;
+            });
+            localStorage.setItem('syncQueue', JSON.stringify(queue));
+
+            await loadReports();
+            showToast('✅ دووبارەکان سڕانەوە - ' + sales.length + ' فرۆشتن ماندووە', 'success');
         }
 
         // Auto-sync every 30 seconds
@@ -1965,10 +2200,85 @@
             }
         }
 
-        // ==================== بەشی فرۆشتن ====================
-        let cart = [];
-        let currentInvoiceNo = '';
+        // ==================== بەشی فرۆشتن - سیستەمی سێ کرین ====================
+        // Multi-cart system
+        let carts = [
+            { id: 1, cart: [], invoiceNo: '', discount: 0, customerId: '', paymentMethod: 'cash', label: 'کرین ١' }
+        ];
+        let activeCartIndex = 0;
+
+        // Proxy getters/setters so existing code still works with `cart` and `currentInvoiceNo`
+        Object.defineProperty(window, 'cart', {
+            get() { return carts[activeCartIndex].cart; },
+            set(v) { carts[activeCartIndex].cart = v; }
+        });
+        Object.defineProperty(window, 'currentInvoiceNo', {
+            get() { return carts[activeCartIndex].invoiceNo; },
+            set(v) { carts[activeCartIndex].invoiceNo = v; }
+        });
+
         let lastSale = null;
+
+        function renderCartTabs() {
+            let tabsEl = document.getElementById('cartTabs');
+            if (!tabsEl) return;
+            tabsEl.innerHTML = carts.map((c, i) => {
+                const isActive = i === activeCartIndex;
+                const itemCount = c.cart.reduce((s, item) => s + item.quantity, 0);
+                return `<div class="cart-tab ${isActive ? 'active' : ''}" onclick="switchCart(${i})">
+                    <span>${c.label}</span>
+                    ${itemCount > 0 ? `<span class="cart-tab-badge">${itemCount}</span>` : ''}
+                    ${carts.length > 1 ? `<span class="cart-tab-close" onclick="event.stopPropagation(); closeCart(${i})">✕</span>` : ''}
+                </div>`;
+            }).join('');
+            tabsEl.innerHTML += `<button class="cart-tab-add" onclick="addNewCart()" title="کرینی نوێ">+ کرین</button>`;
+        }
+
+        function switchCart(index) {
+            activeCartIndex = index;
+            // Sync UI fields from the newly active cart
+            const c = carts[index];
+            const discountInput = document.getElementById('discountInput');
+            if (discountInput) discountInput.value = c.discount || 0;
+            const customerSelect = document.getElementById('customerSelect');
+            if (customerSelect) customerSelect.value = c.customerId || '';
+            const paymentMethod = document.getElementById('paymentMethod');
+            if (paymentMethod) paymentMethod.value = c.paymentMethod || 'cash';
+            const invoiceEl = document.getElementById('invoiceNo');
+            if (invoiceEl) invoiceEl.textContent = c.invoiceNo;
+            renderCartTabs();
+            updateCart();
+        }
+
+        function addNewCart() {
+            if (carts.length >= 5) {
+                showToast('زۆرینەی ٥ کرین دەتوانیت هەمان کاتدا کەرەیت', 'warning');
+                return;
+            }
+            const newInv = generateInvoiceNo();
+            carts.push({
+                id: Date.now(),
+                cart: [],
+                invoiceNo: newInv,
+                discount: 0,
+                customerId: '',
+                paymentMethod: 'cash',
+                label: `کرین ${carts.length + 1}`
+            });
+            activeCartIndex = carts.length - 1;
+            switchCart(activeCartIndex);
+        }
+
+        function closeCart(index) {
+            if (carts[index].cart.length > 0) {
+                if (!confirm(`${carts[index].label} ${carts[index].cart.length} کاڵای تێدایە. دڵنیایت دەتەوێت داخبکەیت؟`)) return;
+            }
+            carts.splice(index, 1);
+            // Relabel
+            carts.forEach((c, i) => { c.label = `کرین ${i + 1}`; });
+            if (activeCartIndex >= carts.length) activeCartIndex = carts.length - 1;
+            switchCart(activeCartIndex);
+        }
 
         function generateInvoiceNo() {
             const now = new Date();
@@ -2223,10 +2533,21 @@
             const discount = parseFloat(document.getElementById('discountInput')?.value) || 0;
             const finalTotal = Math.max(0, subTotal - discount);
 
+            // پاشەکەوتکردنی دیسکاونت لە کرینی چالاک
+            if (carts[activeCartIndex]) {
+                carts[activeCartIndex].discount = discount;
+                const cs = document.getElementById('customerSelect');
+                if (cs) carts[activeCartIndex].customerId = cs.value;
+                const pm = document.getElementById('paymentMethod');
+                if (pm) carts[activeCartIndex].paymentMethod = pm.value;
+            }
+
             const subTotalEl = document.getElementById('subTotal');
             const finalTotalEl = document.getElementById('finalTotal');
             if (subTotalEl) subTotalEl.textContent = subTotal.toLocaleString();
             if (finalTotalEl) finalTotalEl.textContent = finalTotal.toLocaleString();
+
+            renderCartTabs();
         }
 
         function clearCart() {
@@ -2303,6 +2624,7 @@
             cart = [];
             const discountInput = document.getElementById('discountInput');
             if (discountInput) discountInput.value = '0';
+            if (carts[activeCartIndex]) carts[activeCartIndex].discount = 0;
             updateCart();
             displayProducts();
             loadCustomers();
@@ -2310,6 +2632,7 @@
             currentInvoiceNo = generateInvoiceNo();
             const invoiceEl = document.getElementById('invoiceNo');
             if (invoiceEl) invoiceEl.textContent = currentInvoiceNo;
+            renderCartTabs();
 
             showToast('✅ فرۆشتن بەسەرکەوتوویی تۆمارکرا! پسوولە: ' + invoiceNo);
             } catch(err) {
@@ -3005,9 +3328,14 @@
                 tbody.innerHTML = periodSales.slice(0, 50).map(s => {
                     const saleProfit = s.profit != null ? s.profit : (s.total - (s.totalCost || 0));
                     const hasReturn = !!returnsBySale[s.id];
+                    const isOffline = !!s.offlineSaved;
                     return `
-                    <tr>
-                        <td>${s.invoiceNo || 'N/A'} ${hasReturn ? '<span class="badge badge-warning" style="margin-right:4px;">گەڕێنراوەتەوە</span>' : ''}</td>
+                    <tr class="${isOffline ? 'offline-row' : ''}">
+                        <td>
+                            ${isOffline ? '<span class="offline-badge">📵 ئۆفلاین</span>' : ''}
+                            ${s.invoiceNo || 'N/A'}
+                            ${hasReturn ? '<span class="badge badge-warning" style="margin-right:4px;">گەڕێنراوەتەوە</span>' : ''}
+                        </td>
                         <td>${s.createdAt ? new Date(s.createdAt).toLocaleString('ckb') : 'N/A'}</td>
                         <td>${s.customerName || 'N/A'}</td>
                         <td>${(s.total || 0).toLocaleString()} د.ع</td>
@@ -3031,8 +3359,11 @@
                     returnsTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">هیچ گەڕاندنەوەیەک نییە بۆ ئەم ماوەیە</td></tr>';
                 } else {
                     returnsTbody.innerHTML = periodReturns.slice(0, 50).map(r => `
-                        <tr>
-                            <td>${r.invoiceNo || 'N/A'}</td>
+                        <tr class="${r.offlineSaved ? 'offline-row' : ''}">
+                            <td>
+                                ${r.offlineSaved ? '<span class="offline-badge">📵 ئۆفلاین</span>' : ''}
+                                ${r.invoiceNo || 'N/A'}
+                            </td>
                             <td>${r.createdAt ? new Date(r.createdAt).toLocaleString('ckb') : 'N/A'}</td>
                             <td class="profit-negative">${(r.refundAmount || 0).toLocaleString()} د.ع</td>
                             <td>${r.reason || '-'}</td>
@@ -3355,6 +3686,7 @@
                     await displayProducts();
                     updateCart();
                     await loadCustomers();
+                    renderCartTabs();
                     if (!currentInvoiceNo) {
                         currentInvoiceNo = generateInvoiceNo();
                         const invoiceEl = document.getElementById('invoiceNo');
@@ -3407,10 +3739,10 @@
                 updateCart();
                 await loadCustomers();
                 updateDateTime();
-                
-                setInterval(updateDateTime, 1000);
+                renderCartTabs();
                 
                 updateConnectionStatus('online');
+                setInterval(updateDateTime, 1000);
                 console.log('POS system started successfully');
             } catch (error) {
                 console.error('Initialization error:', error);
@@ -3424,6 +3756,7 @@
                 updateCart();
                 await loadCustomers();
                 updateDateTime();
+                renderCartTabs();
                 setInterval(updateDateTime, 1000);
             }
         }
