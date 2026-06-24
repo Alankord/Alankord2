@@ -1924,12 +1924,18 @@
                     serverSales.push({ id: doc.id, offlineSaved: false, ...doc.data() });
                 });
 
-                // تەنیا پسوولەی ئۆفلاین کە هێشتا لە سێرڤەر نییە نیشان بدە
+                // تەنیا پسوولەی ئۆفلاین کە هێشتا لە سێرڤەر نییە بگرە
                 const serverInvoiceNos = new Set(serverSales.map(s => s.invoiceNo));
                 const localSales = JSON.parse(localStorage.getItem('sales') || '[]');
                 const trulyPending = localSales.filter(s => s.offlineSaved === true && !serverInvoiceNos.has(s.invoiceNo));
 
-                const merged = [...trulyPending, ...serverSales];
+                // دووبارەکان لابێن بە invoiceNo
+                const seen = new Set();
+                const merged = [...trulyPending, ...serverSales].filter(s => {
+                    if (seen.has(s.invoiceNo)) return false;
+                    seen.add(s.invoiceNo);
+                    return true;
+                });
                 localStorage.setItem('sales', JSON.stringify(merged));
                 return merged;
             } catch (error) {
@@ -1942,9 +1948,14 @@
             if (!navigator.onLine) {
                 sale.offlineSaved = true;
                 sale.localId = sale.localId || ('local-' + Date.now());
-                queueForSync('sale', sale);
+                // تەنیا یەکجار بنووسە بۆ queue — ئەگەر پێشتر هەبوو نەیزیادبکە
+                const existingQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
+                const alreadyQueued = existingQueue.find(q => q.type === 'sale' && q.data.invoiceNo === sale.invoiceNo);
+                if (!alreadyQueued) queueForSync('sale', sale);
                 const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-                sales.unshift(sale);
+                const dupIdx = sales.findIndex(s => s.invoiceNo === sale.invoiceNo);
+                if (dupIdx < 0) sales.unshift(sale);
+                else sales[dupIdx] = sale;
                 localStorage.setItem('sales', JSON.stringify(sales));
                 return false;
             }
@@ -1952,20 +1963,27 @@
                 const saleData = Object.assign({}, sale);
                 delete saleData.localId;
                 delete saleData.offlineSaved;
-                const docRef = await db.collection('sales').add(saleData);
-                sale.id = docRef.id;
+                // invoiceNo بەکاربهێنە وەک Document ID — ئەمەش دووبارەکردنەوە ڕادەگرێت
+                await db.collection('sales').doc(sale.invoiceNo).set(saleData);
+                sale.id = sale.invoiceNo;
                 sale.offlineSaved = false;
                 const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-                sales.unshift(sale);
+                const dupIdx = sales.findIndex(s => s.invoiceNo === sale.invoiceNo);
+                if (dupIdx < 0) sales.unshift(sale);
+                else sales[dupIdx] = sale;
                 localStorage.setItem('sales', JSON.stringify(sales));
                 return true;
             } catch (error) {
                 console.error('Error saving sale:', error);
                 sale.offlineSaved = true;
                 sale.localId = sale.localId || ('local-' + Date.now());
-                queueForSync('sale', sale);
+                const existingQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
+                const alreadyQueued = existingQueue.find(q => q.type === 'sale' && q.data.invoiceNo === sale.invoiceNo);
+                if (!alreadyQueued) queueForSync('sale', sale);
                 const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-                sales.unshift(sale);
+                const dupIdx = sales.findIndex(s => s.invoiceNo === sale.invoiceNo);
+                if (dupIdx < 0) sales.unshift(sale);
+                else sales[dupIdx] = sale;
                 localStorage.setItem('sales', JSON.stringify(sales));
                 return false;
             }
@@ -2060,17 +2078,13 @@
                             const invoiceNoToSync = saleData.invoiceNo;
                             delete saleData.localId;
                             delete saleData.offlineSaved;
-                            // بچەکبکە لە localStorage: ئەگەر پێشتر sync کراوە، دووجار مەنێرە
-                            const lsSalesBefore = JSON.parse(localStorage.getItem('sales') || '[]');
-                            const alreadySynced = lsSalesBefore.find(s => s.invoiceNo === invoiceNoToSync && s.offlineSaved === false && s.id && !s.id.startsWith('local-'));
-                            if (!alreadySynced) {
-                                const docRef = await db.collection('sales').add(saleData);
-                                // offlineSaved=false و ID ی ڕاستەقینە بنووسە
-                                const lsSales = JSON.parse(localStorage.getItem('sales') || '[]');
-                                const idx = lsSales.findIndex(s => s.invoiceNo === invoiceNoToSync);
-                                if (idx >= 0) { lsSales[idx].id = docRef.id; lsSales[idx].offlineSaved = false; delete lsSales[idx].localId; }
-                                localStorage.setItem('sales', JSON.stringify(lsSales));
-                            }
+                            // set() بەجێی add() — ئەگەر پێشتر هەبێت، دووبارە نانووسێت
+                            await db.collection('sales').doc(invoiceNoToSync).set(saleData);
+                            // localStorage نوێبکەرەوە
+                            const lsSales = JSON.parse(localStorage.getItem('sales') || '[]');
+                            const idx = lsSales.findIndex(s => s.invoiceNo === invoiceNoToSync);
+                            if (idx >= 0) { lsSales[idx].id = invoiceNoToSync; lsSales[idx].offlineSaved = false; delete lsSales[idx].localId; }
+                            localStorage.setItem('sales', JSON.stringify(lsSales));
                             break;
                         }
                         case 'returnSale': {
@@ -2559,6 +2573,7 @@
         }
 
         let _saleProcessing = false;
+        let _lastCompletedInvoice = '';
 
         async function completeSale() {
             if (_saleProcessing) return;
@@ -2566,7 +2581,11 @@
                 alert('تکایە یەک کاڵا بەلانی کەمەوە زیادبکە!');
                 return;
             }
+            const invoiceNo = currentInvoiceNo || generateInvoiceNo();
+            // دووبارەکردنەوە ڕاگرە — ئەگەر هەمان پسوولە نوێ تۆمارکرابێت
+            if (_lastCompletedInvoice === invoiceNo) return;
             _saleProcessing = true;
+            _lastCompletedInvoice = invoiceNo;
             try {
 
             const products = await syncProducts();
@@ -2577,7 +2596,7 @@
             const profit = finalTotal - totalCost;
             const customerId = document.getElementById('customerSelect')?.value || '';
             const paymentMethod = document.getElementById('paymentMethod')?.value || 'cash';
-            const invoiceNo = currentInvoiceNo || generateInvoiceNo();
+            // invoiceNo already captured above
 
             // Update product quantities
             for (const item of cart) {
@@ -3642,7 +3661,7 @@
             const tag = (e.target.tagName || '').toLowerCase();
             const isTypingField = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
 
-            // F9: هەمیشە فرۆشتن تەواو دەکات، تەنانەت ئەگەر فۆکۆس لەسەر خانەی بارکۆد/گەڕان بێت
+            // F9: هەمیشە فرۆشتن تەواو دەکات
             if (e.key === 'F9') {
                 e.preventDefault();
                 completeSale();
@@ -3655,12 +3674,8 @@
                 printLastReceipt();
                 return;
             }
-
-            // Enter: تەنیا کاتێک فۆکۆس لەسەر خانەیەکی نووسین نییە (بۆ ئەوەی سکانی بارکۆد و گەڕان تێکنەدرێت)
-            if (e.key === 'Enter' && !isTypingField) {
-                e.preventDefault();
-                completeSale();
-            }
+            // تێبینی: Enter لێرە ناخرێت — چونکە دوگمەی فرۆشتن خۆی onclick هەیە
+            // ئەگەر Enter لێرە زیاد بکرێت، دووجار completeSale() دەمێنێت
         });
 
         // ==================== گۆڕینی بەشەکان ====================
