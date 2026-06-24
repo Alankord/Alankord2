@@ -1104,7 +1104,7 @@
 
                         <!-- دوگمەکان -->
                         <div class="btn-group">
-                            <button class="btn btn-success" onclick="completeSale()" title="کلیلی کۆمپیوتەر: F9 یان Enter">✅ فرۆشتن (F9)</button>
+                            <button class="btn btn-success" onclick="completeSale()" title="کلیلی کۆمپیوتەر: End">✅ End</button>
                             <button class="btn btn-info" onclick="holdSale()">⏸️ راگرتن</button>
                         </div>
                         <button class="btn btn-warning" onclick="printLastReceipt()" title="کلیلی کۆمپیوتەر: F10">🖨️ چاپکردنی دواین پسوولە (F10)</button>
@@ -3661,8 +3661,8 @@
             const tag = (e.target.tagName || '').toLowerCase();
             const isTypingField = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
 
-            // F9: هەمیشە فرۆشتن تەواو دەکات
-            if (e.key === 'F9') {
+            // End: هەمیشە فرۆشتن تەواو دەکات
+            if (e.key === 'End') {
                 e.preventDefault();
                 completeSale();
                 return;
