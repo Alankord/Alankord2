@@ -1009,6 +1009,7 @@
             <div class="nav-buttons">
                 <button class="nav-btn active" onclick="showSection('pos')">💰 فرۆشتن</button>
                 <button class="nav-btn" onclick="showSection('products')">📦 کاڵاکان و کۆگا</button>
+                <button class="nav-btn" onclick="showSection('cards')">💳 کارت</button>
                 <button class="nav-btn" onclick="showSection('customers')">👥 کڕیاران</button>
                 <button class="nav-btn" onclick="showSection('reports')">📊 ڕاپۆرت</button>
             </div>
@@ -1035,6 +1036,16 @@
                         </div>
                         <div class="product-grid" id="productGrid">
                             <div style="text-align: center; padding: 20px; color: #999;">کاڵاکان باردەکرێن...</div>
+                        </div>
+                    </div>
+
+                    <!-- کارت: جیاواز لە کاڵا - زیادکردنی ڕاستەوخۆ بۆ سەبەتە -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span>💳 کارت</span>
+                        </div>
+                        <div class="product-grid" id="posCardGrid" style="max-height: 220px;">
+                            <div style="text-align: center; padding: 15px; color: #999;">کارتەکان باردەکرێن...</div>
                         </div>
                     </div>
                 </div>
@@ -1268,6 +1279,193 @@
                             <tr>
                                 <td colspan="9" style="text-align: center; color: #999;">کاڵاکان باردەکرێن...</td>
                             </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- بەشی کارت (ڕەسید و فرۆشتنی کارت - جیاواز لە کاڵا) -->
+        <div id="cardsSection" class="section">
+
+            <!-- بەشی ڕەسیدی گشتی -->
+            <div class="card" style="border: 2px solid #667eea;">
+                <div class="card-header" style="color: #667eea;">
+                    📦 ڕەسیدی گشتی
+                </div>
+
+                <!-- باڵانسی ئێستا -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span style="font-size: 16px;">💰 باڵانسی ڕەسیدی ماوە:</span>
+                    <strong id="generalReceiptBalanceDisplay" style="font-size: 26px;">0 د.ع</strong>
+                </div>
+
+                <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
+                        <label style="font-weight: bold; margin-bottom: 6px; display: block;">بڕ (د.ع):</label>
+                        <input type="number" id="receiptTopupInput" class="form-control"
+                            placeholder="بۆ نموونە: 200000"
+                            style="font-size: 20px; font-weight: bold; color: #667eea;">
+                    </div>
+                    <button class="btn btn-success" onclick="applyReceiptTopup()"
+                        style="width: auto; padding: 12px 30px; font-size: 16px; white-space: nowrap; margin: 0;">
+                        ✅ زیادکردن
+                    </button>
+                    <button class="btn btn-danger" onclick="applyReceiptDeduction()"
+                        style="width: auto; padding: 12px 30px; font-size: 16px; white-space: nowrap; margin: 0;">
+                        ➖ کەمکردنەوە
+                    </button>
+                </div>
+                <p style="color:#888; font-size:13px; margin-top:12px;">
+                    💡 هەرکات ڕەسیدی نوێ بکڕیت، بڕەکە لێرە زیادبکە. هەر کارتێک بفروشیت، بەپێی نرخی کڕینی خۆی بەخۆکار لە باڵانسی سەرەوە کەم دەبیتەوە. ئەگەر پێویستت بە ڕاستکردنەوەی دەستی بوو، بڕ بنووسە و "کەمکردنەوە" بکە.
+                </p>
+            </div>
+
+            <!-- مێژووی ڕەسیدەکان -->
+            <div class="card">
+                <div class="card-header">📋 مێژووی ڕەسیدەکان</div>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>📅 بەروار</th>
+                                <th>📝 چالاکی</th>
+                                <th>💰 بڕ</th>
+                                <th>📊 باڵانس دوای</th>
+                            </tr>
+                        </thead>
+                        <tbody id="restockHistoryBody">
+                            <tr><td colspan="4" style="text-align:center; color:#999;">هیچ چالاکیەکی ڕەسید تۆمارنەکراوە</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <select id="cardReportRangeSelect" onchange="onCardReportRangeChange()">
+                    <option value="today">ئەمڕۆ</option>
+                    <option value="week">٧ ڕۆژی ڕابردوو</option>
+                    <option value="month">ئەم مانگە</option>
+                    <option value="all" selected>هەموو کات</option>
+                    <option value="custom">بەرواری دیاریکراو...</option>
+                </select>
+                <input type="date" id="cardReportFromDate" class="form-control" style="width: auto; display: none;">
+                <span id="cardReportToDateLabel" style="display:none;">بۆ</span>
+                <input type="date" id="cardReportToDate" class="form-control" style="width: auto; display: none;">
+                <button class="btn btn-info" style="width: auto; margin: 0;" onclick="loadCardReports()">🔄 نوێکردنەوە</button>
+                <button class="export-btn" onclick="exportCardSalesCSV()">⬇️ دەرهێنانی CSV</button>
+            </div>
+
+            <!-- ئامارەکانی کارت (سەربەخۆ لە ڕاپۆرتی کاڵا) -->
+            <div class="stats-grid">
+                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <p>📦 باڵانسی ڕەسیدی گشتی</p>
+                    <h3 id="generalReceiptStatValue">0</h3>
+                    <p>دینار</p>
+                </div>
+                <div class="stat-card">
+                    <p>💳 ژمارەی کارتی فرۆشراو</p>
+                    <h3 id="cardTotalSoldQty">0</h3>
+                    <p>کارت</p>
+                </div>
+                <div class="stat-card cost">
+                    <p>💸 کۆی ڕەسید (نرخی کڕین)</p>
+                    <h3 id="cardTotalCost">0</h3>
+                    <p>دینار</p>
+                </div>
+                <div class="stat-card value">
+                    <p>💰 کۆی فرۆشتن</p>
+                    <h3 id="cardTotalSell">0</h3>
+                    <p>دینار</p>
+                </div>
+                <div class="stat-card profit">
+                    <p>📈 کۆی سوود</p>
+                    <h3 id="cardTotalProfit">0</h3>
+                    <p>دینار</p>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <p>📦 کۆی ڕەسیدی ماوە</p>
+                    <h3 id="cardTotalStock">0</h3>
+                    <p>کارت لە ڕەسیددا</p>
+                </div>
+            </div>
+
+            <!-- جۆرەکانی کارت و فرۆشتنی خێرا -->
+            <div class="card">
+                <div class="card-header">
+                    <span>💳 جۆرەکانی کارت</span>
+                    <button class="btn btn-primary" style="width: auto;" onclick="showAddCardForm()">+ کارتی نوێ</button>
+                </div>
+
+                <!-- فۆڕمی زیادکردنی کارتی نوێ -->
+                <div id="addCardForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <h4>زیادکردنی کارتی نوێ</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ناوی کارت:</label>
+                            <input type="text" id="cardName" class="form-control" placeholder="بۆ نموونە: کارتی ئاسیاسێل ٥٠٠٠">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>نرخی کڕین (ڕەسید):</label>
+                            <input type="number" id="cardCostPrice" class="form-control" placeholder="29000">
+                        </div>
+                        <div class="form-group">
+                            <label>نرخی فرۆشتن:</label>
+                            <input type="number" id="cardSellPrice" class="form-control" placeholder="30000">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="addCard()" style="flex: 1;">💾 پاشەکەوت</button>
+                        <button class="btn btn-danger" onclick="document.getElementById('addCardForm').style.display='none'" style="flex: 1;">❌ ڕەتکردنەوە</button>
+                    </div>
+                </div>
+
+                <!-- دوگمەی فرۆشتنی خێرا بۆ هەر کارتێک -->
+                <div class="product-grid" id="cardSellGrid">
+                    <div style="text-align: center; padding: 20px; color: #999;">کارتەکان باردەکرێن...</div>
+                </div>
+
+                <!-- خشتەی بەڕێوەبردنی جۆرەکانی کارت -->
+                <div style="overflow-x: auto; margin-top: 15px;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ناوی کارت</th>
+                                <th>نرخی کڕین (ڕەسید)</th>
+                                <th>نرخی فرۆشتن</th>
+                                <th>سوود/دانە</th>
+                                <th>📦 بڕ لە ڕەسید</th>
+                                <th>📅 بەرواری دواین ڕەسید</th>
+                                <th>کردارەکان</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cardsTableBody">
+                            <tr><td colspan="5" style="text-align: center; color: #999;">کارتەکان باردەکرێن...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- مێژووی فرۆشتنی کارت -->
+            <div class="card">
+                <div class="card-header">📋 مێژووی فرۆشتنی کارت (ماوەی هەڵبژێردراو)</div>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>بەروار</th>
+                                <th>ناوی کارت</th>
+                                <th>دانە</th>
+                                <th>کۆی ڕەسید</th>
+                                <th>کۆی فرۆشتن</th>
+                                <th>سوود</th>
+                                <th>کردارەکان</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cardSalesTableBody">
+                            <tr><td colspan="7" style="text-align: center; color: #999;">هیچ فرۆشتنێکی کارت نییە</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -2087,6 +2285,28 @@
                             localStorage.setItem('sales', JSON.stringify(lsSales));
                             break;
                         }
+                        case 'card':
+                            await db.collection('cards').doc(item.data.id.toString()).set(item.data);
+                            break;
+                        case 'deleteCard':
+                            await db.collection('cards').doc(item.data.id.toString()).delete();
+                            break;
+                        case 'cardSale': {
+                            const csData = Object.assign({}, item.data);
+                            delete csData.offlineSaved;
+                            await db.collection('cardSales').doc(csData.id).set(csData);
+                            const lsCardSales = JSON.parse(localStorage.getItem('cardSales') || '[]');
+                            const csIdx = lsCardSales.findIndex(s => s.id === csData.id);
+                            if (csIdx >= 0) lsCardSales[csIdx].offlineSaved = false;
+                            localStorage.setItem('cardSales', JSON.stringify(lsCardSales));
+                            break;
+                        }
+                        case 'deleteCardSale':
+                            await db.collection('cardSales').doc(item.data.id.toString()).delete();
+                            break;
+                        case 'generalReceipt':
+                            await db.collection('settings').doc('generalReceipt').set(item.data);
+                            break;
                         case 'returnSale': {
                             const retData = Object.assign({}, item.data);
                             const retInvoice = retData.invoiceNo;
@@ -2589,17 +2809,25 @@
             try {
 
             const products = await syncProducts();
+            // کارت لە کاڵا جیادەکەینەوە: کارت کۆگای نییە و سوود/تێچوونی بە جیایی ڕاپۆرت دەکرێت
+            const goodsItems = cart.filter(item => !item.isCard);
+            const cardItems = cart.filter(item => item.isCard);
+
             const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const totalCost = cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
+            const goodsSubTotal = goodsItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const cardRevenue = cardItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const goodsCost = goodsItems.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
             const discount = parseFloat(document.getElementById('discountInput')?.value) || 0;
+            // ئەوەی کڕیار ڕاستەوخۆ دەیدات - کاڵا و کارت پێکەوە (بۆ پسوولە/کاتی پارەدان)
             const finalTotal = Math.max(0, subTotal - discount);
-            const profit = finalTotal - totalCost;
+            // سوود و تێچوون تەنیا بۆ کاڵا حیساب دەکرێت؛ سوودی کارت بە جیایی لە تابی "کارت" ڕاپۆرت دەکرێت
+            const profit = (goodsSubTotal - discount) - goodsCost;
             const customerId = document.getElementById('customerSelect')?.value || '';
             const paymentMethod = document.getElementById('paymentMethod')?.value || 'cash';
             // invoiceNo already captured above
 
-            // Update product quantities
-            for (const item of cart) {
+            // Update product quantities (تەنیا کاڵا - کارت بڕی کۆگای نییە)
+            for (const item of goodsItems) {
                 // پاکێتەکان: بەکارهێنانی _realProductId و _pkgSize بۆ کەمکردنەوەی کۆگای ڕاستەقینە
                 const realId = item._realProductId || item.productId;
                 const product = products.find(p => p.id === realId);
@@ -2622,13 +2850,44 @@
                 subTotal: subTotal,
                 discount: discount,
                 total: finalTotal,
-                totalCost: totalCost,
+                totalCost: goodsCost,
                 profit: profit,
+                cardRevenue: cardRevenue,
                 paymentMethod: paymentMethod,
                 createdAt: new Date().toISOString()
             };
 
             await saveSale(sale);
+
+            // تۆمارکردنی فرۆشتنی کارت بە جیایی (بۆ ئامار و ڕاپۆرتی تایبەتی تابی "کارت")
+            for (const item of cardItems) {
+                const itemCost = (item.cost || 0) * item.quantity;
+                const itemSell = item.price * item.quantity;
+                await saveCardSale({
+                    id: 'CS' + Date.now() + Math.floor(Math.random() * 1000) + '_' + item.cardId,
+                    cardId: item.cardId,
+                    cardName: item.cardName || item.name,
+                    costPrice: item.cost || 0,
+                    sellPrice: item.price,
+                    quantity: item.quantity,
+                    totalCost: itemCost,
+                    totalSell: itemSell,
+                    profit: itemSell - itemCost,
+                    invoiceNo: invoiceNo,
+                    createdAt: sale.createdAt
+                });
+
+                // زیادکردنی بڕی ڕەسید بۆ کارتەکە (فرۆشتن = ڕەسید گەیشت بۆ کڕیار)
+                const allCards = await syncCards();
+                const soldCard = allCards.find(c => c.id === item.cardId);
+                if (soldCard) {
+                    soldCard.stock = (soldCard.stock || 0) + item.quantity;
+                    await saveCard(soldCard);
+                }
+
+                // کەمکردنەوەی باڵانسی ڕەسیدی گشتی بەپێی نرخی کڕینی کارتی فرۆشراو
+                await deductFromGeneralReceipt(itemCost, `فرۆشتنی ${item.cardName || item.name} × ${item.quantity}`);
+            }
 
             if (paymentMethod === 'credit' && customerId) {
                 const cust = customers.find(c => c.id === customerId);
@@ -3045,6 +3304,758 @@
             await loadProducts();
             await displayProducts();
             alert(`✅ بڕی ${parsedQty} ${unitLabel} زیادکرا! (کۆی نوێ: ${product.quantity} ${unitLabel})`);
+        }
+
+        // ==================== بەشی کارت (ڕەسید/فرۆشتنی کارت - سەربەخۆ لە کاڵا) ====================
+        // تێبینی: کارت کاڵا نییە - بڕی کۆگای نییە و بێ‌سنووری دەفروشرێت.
+        // هەر کارتێک نرخی کڕین (ڕەسید) و نرخی فرۆشتنی خۆی هەیە، بە تەواوی جیاواز لە سیستەمی کاڵاکان و ڕاپۆرتی کاڵا.
+
+        async function syncCards() {
+            if (!navigator.onLine) {
+                return JSON.parse(localStorage.getItem('cards') || '[]');
+            }
+            try {
+                const snapshot = await db.collection('cards').get({ source: 'server' });
+                const cards = [];
+                snapshot.forEach(doc => cards.push({ id: doc.id, ...doc.data() }));
+                localStorage.setItem('cards', JSON.stringify(cards));
+                return cards;
+            } catch (error) {
+                console.error('Error syncing cards:', error);
+                return JSON.parse(localStorage.getItem('cards') || '[]');
+            }
+        }
+
+        async function saveCard(card) {
+            const cards = JSON.parse(localStorage.getItem('cards') || '[]');
+            const index = cards.findIndex(c => c.id === card.id);
+            if (index >= 0) { cards[index] = card; } else { cards.push(card); }
+            localStorage.setItem('cards', JSON.stringify(cards));
+
+            if (!navigator.onLine) {
+                queueForSync('card', card);
+                return false;
+            }
+            try {
+                await db.collection('cards').doc(card.id.toString()).set(card);
+                return true;
+            } catch (error) {
+                console.error('Error saving card:', error);
+                queueForSync('card', card);
+                return false;
+            }
+        }
+
+        async function deleteCardFromDB(id) {
+            const cards = JSON.parse(localStorage.getItem('cards') || '[]').filter(c => c.id !== id);
+            localStorage.setItem('cards', JSON.stringify(cards));
+            try {
+                await db.collection('cards').doc(id.toString()).delete();
+                return true;
+            } catch (error) {
+                console.error('Error deleting card:', error);
+                queueForSync('deleteCard', { id });
+                return false;
+            }
+        }
+
+        async function syncCardSales() {
+            if (!navigator.onLine) {
+                return JSON.parse(localStorage.getItem('cardSales') || '[]');
+            }
+            try {
+                const snapshot = await db.collection('cardSales')
+                    .orderBy('createdAt', 'desc')
+                    .limit(500)
+                    .get({ source: 'server' });
+                const serverSales = [];
+                snapshot.forEach(doc => serverSales.push({ id: doc.id, offlineSaved: false, ...doc.data() }));
+
+                const serverIds = new Set(serverSales.map(s => s.id));
+                const localSales = JSON.parse(localStorage.getItem('cardSales') || '[]');
+                const trulyPending = localSales.filter(s => s.offlineSaved === true && !serverIds.has(s.id));
+
+                const seen = new Set();
+                const merged = [...trulyPending, ...serverSales].filter(s => {
+                    if (seen.has(s.id)) return false;
+                    seen.add(s.id);
+                    return true;
+                });
+                localStorage.setItem('cardSales', JSON.stringify(merged));
+                return merged;
+            } catch (error) {
+                console.error('Error syncing card sales:', error);
+                return JSON.parse(localStorage.getItem('cardSales') || '[]');
+            }
+        }
+
+        async function saveCardSale(record) {
+            if (!navigator.onLine) {
+                record.offlineSaved = true;
+                queueForSync('cardSale', record);
+                const sales = JSON.parse(localStorage.getItem('cardSales') || '[]');
+                sales.unshift(record);
+                localStorage.setItem('cardSales', JSON.stringify(sales));
+                return false;
+            }
+            try {
+                const data = Object.assign({}, record);
+                delete data.offlineSaved;
+                await db.collection('cardSales').doc(record.id).set(data);
+                record.offlineSaved = false;
+                const sales = JSON.parse(localStorage.getItem('cardSales') || '[]');
+                sales.unshift(record);
+                localStorage.setItem('cardSales', JSON.stringify(sales));
+                return true;
+            } catch (error) {
+                console.error('Error saving card sale:', error);
+                record.offlineSaved = true;
+                queueForSync('cardSale', record);
+                const sales = JSON.parse(localStorage.getItem('cardSales') || '[]');
+                sales.unshift(record);
+                localStorage.setItem('cardSales', JSON.stringify(sales));
+                return false;
+            }
+        }
+
+        async function deleteCardSaleFromDB(id) {
+            const sales = JSON.parse(localStorage.getItem('cardSales') || '[]').filter(s => s.id !== id);
+            localStorage.setItem('cardSales', JSON.stringify(sales));
+            try {
+                await db.collection('cardSales').doc(id.toString()).delete();
+                return true;
+            } catch (error) {
+                console.error('Error deleting card sale:', error);
+                queueForSync('deleteCardSale', { id });
+                return false;
+            }
+        }
+
+        // ---------- ڕووکاری بەڕێوەبردنی کارت ----------
+
+        function showAddCardForm() {
+            const form = document.getElementById('addCardForm');
+            if (form) {
+                form.style.display = 'block';
+                document.getElementById('cardName').value = '';
+                document.getElementById('cardCostPrice').value = '';
+                document.getElementById('cardSellPrice').value = '';
+            }
+        }
+
+        async function addCard() {
+            const name = document.getElementById('cardName')?.value.trim();
+            const costPrice = parseFloat(document.getElementById('cardCostPrice')?.value);
+            const sellPrice = parseFloat(document.getElementById('cardSellPrice')?.value);
+            const stock = 0;
+            const stockAlert = 5;
+
+            if (!name || isNaN(costPrice) || isNaN(sellPrice)) {
+                showToast('تکایە هەموو خانە پێویستەکان پڕبکەرەوە!', 'error');
+                return;
+            }
+
+            const newCard = {
+                id: Date.now().toString(),
+                name,
+                costPrice,
+                sellPrice,
+                stock: stock,
+                stockAlert: stockAlert,
+                lastRestocked: stock > 0 ? new Date().toISOString() : null
+            };
+
+            await saveCard(newCard);
+
+            const form = document.getElementById('addCardForm');
+            if (form) form.style.display = 'none';
+
+            await loadCards();
+            showToast('✅ کارت بەسەرکەوتوویی زیادکرا!');
+        }
+
+        async function editCard(id) {
+            const cards = await syncCards();
+            const card = cards.find(c => c.id === id);
+            if (!card) return;
+
+            const newName = prompt('ناوی کارت:', card.name);
+            if (newName === null) return;
+
+            const newCost = prompt('نرخی کڕین (ڕەسید):', card.costPrice);
+            if (newCost === null) return;
+
+            const newSell = prompt('نرخی فرۆشتن:', card.sellPrice);
+            if (newSell === null) return;
+
+            card.name = newName.trim() || card.name;
+            card.costPrice = isNaN(parseFloat(newCost)) ? card.costPrice : parseFloat(newCost);
+            card.sellPrice = isNaN(parseFloat(newSell)) ? card.sellPrice : parseFloat(newSell);
+
+            await saveCard(card);
+            await loadCards();
+            showToast(`✅ کارتی "${card.name}" نوێکرایەوە`);
+        }
+
+        async function deleteCard(id) {
+            if (!confirm('دڵنیای دەتەوێت ئەم جۆرە کارتە بسڕیتەوە؟ (مێژووی فرۆشتنی پێشووی ناسڕێتەوە)')) return;
+            await deleteCardFromDB(id);
+            await loadCards();
+            showToast('🗑️ کارت سڕدرایەوە');
+        }
+
+        async function restockCard(triggeredById) {
+            const cards = await syncCards();
+            if (cards.length === 0) {
+                showToast('هیچ کارتێک نییە', 'error');
+                return;
+            }
+
+            // تاریخ و کاتی ئێستا
+            const now = new Date();
+            const dateStr = now.toLocaleString('ckb', {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+
+            // پیشاندانی بڕی ئێستا بۆ هەموو جۆرەکان
+            const cardList = cards.map(c => `  • ${c.name}: ${c.stock || 0} کارت`).join('\n');
+
+            const qty = prompt(
+                `📦 زیادکردنی ڕەسید بۆ هەموو جۆرەکانی کارت\n` +
+                `📅 بەروار: ${dateStr}\n\n` +
+                `بڕی ئێستا:\n${cardList}\n\n` +
+                `چەند کارت زیادبکرێت بۆ هەموو جۆرەکان؟`,
+                ''
+            );
+            if (qty === null || qty.trim() === '') return;
+
+            const parsedQty = parseFloat(qty);
+            if (isNaN(parsedQty) || parsedQty <= 0) {
+                showToast('تکایە ژمارەیەکی دروست بنووسە', 'error');
+                return;
+            }
+
+            const restockedAt = now.toISOString();
+
+            // نوێکردنەوەی ستۆکی هەموو کارتەکان
+            const updatedCards = [];
+            for (const card of cards) {
+                const oldStock = card.stock || 0;
+                card.stock = Math.round(oldStock + parsedQty);
+                card.lastRestocked = restockedAt;
+                await saveCard(card);
+                updatedCards.push({ ...card, oldStock });
+            }
+
+            await loadCards();
+            showToast(`✅ ${parsedQty} کارت زیادکرا بۆ هەموو ${cards.length} جۆری کارت | بەروار: ${dateStr}`);
+
+            // پیشاندانی پسوولەی ڕەسید بۆ هەموو کارتەکان
+            const totalCostAll = updatedCards.reduce((s, c) => s + (c.costPrice * parsedQty), 0);
+            const totalSellAll = updatedCards.reduce((s, c) => s + (c.sellPrice * parsedQty), 0);
+            const totalProfitAll = totalSellAll - totalCostAll;
+
+            const receiptRows = updatedCards.map(c => {
+                const cost = c.costPrice * parsedQty;
+                const sell = c.sellPrice * parsedQty;
+                const profit = sell - cost;
+                return `
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:7px 5px; font-weight:bold;">💳 ${c.name}</td>
+                    <td style="padding:7px 5px; text-align:center;">${c.oldStock} ➜ ${c.stock}</td>
+                    <td style="padding:7px 5px; text-align:center; color:#e74c3c;">${cost.toLocaleString()} د.ع</td>
+                    <td style="padding:7px 5px; text-align:center; color:#2980b9;">${sell.toLocaleString()} د.ع</td>
+                    <td style="padding:7px 5px; text-align:center; color:#27ae60; font-weight:bold;">+${profit.toLocaleString()} د.ع</td>
+                </tr>`;
+            }).join('');
+
+            // دروستکردنی مۆداڵی پسوولە
+            const modalId = 'restockReceiptModal';
+            let modal = document.getElementById(modalId);
+            if (modal) modal.remove();
+
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.style.cssText = `
+                position:fixed; top:0; left:0; right:0; bottom:0;
+                background:rgba(0,0,0,0.7); z-index:9999;
+                display:flex; align-items:center; justify-content:center;
+            `;
+            modal.innerHTML = `
+                <div style="
+                    background:#fff; border-radius:16px; padding:30px;
+                    max-width:700px; width:95%; max-height:85vh; overflow-y:auto;
+                    box-shadow:0 10px 40px rgba(0,0,0,0.3); direction:rtl;
+                ">
+                    <div style="text-align:center; margin-bottom:20px;">
+                        <div style="font-size:36px; margin-bottom:8px;">📦</div>
+                        <h2 style="color:#333; margin:0; font-size:22px;">پسوولەی زیادکردنی ڕەسید</h2>
+                        <p style="color:#888; margin:6px 0 0; font-size:14px;">📅 ${dateStr}</p>
+                    </div>
+
+                    <div style="background:#f8f9fa; border-radius:10px; padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                        <span style="font-size:15px;">📦 بڕی زیادکراو بۆ هەر کارتێک:</span>
+                        <strong style="font-size:18px; color:#667eea;">${parsedQty.toLocaleString()} کارت</strong>
+                    </div>
+
+                    <div style="overflow-x:auto; margin-bottom:18px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                            <thead>
+                                <tr style="background:#667eea; color:white;">
+                                    <th style="padding:10px 8px; text-align:right;">ناوی کارت</th>
+                                    <th style="padding:10px 8px; text-align:center;">بڕ (کۆن ➜ نوێ)</th>
+                                    <th style="padding:10px 8px; text-align:center;">کۆی ڕەسید</th>
+                                    <th style="padding:10px 8px; text-align:center;">کۆی فرۆشتن</th>
+                                    <th style="padding:10px 8px; text-align:center;">زێدەکە</th>
+                                </tr>
+                            </thead>
+                            <tbody>${receiptRows}</tbody>
+                        </table>
+                    </div>
+
+                    <div style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span>💸 کۆی تێچوونی ڕەسید:</span>
+                            <strong>${totalCostAll.toLocaleString()} د.ع</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span>💰 کۆی بەهای فرۆشتن:</span>
+                            <strong>${totalSellAll.toLocaleString()} د.ع</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.4); padding-top:10px; margin-top:4px; font-size:18px;">
+                            <span>📈 کۆی زێدەکەی ئەگەری:</span>
+                            <strong style="color:#ffd700;">+${totalProfitAll.toLocaleString()} د.ع</strong>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="document.getElementById('${modalId}').remove()"
+                            style="flex:1; padding:12px; background:#667eea; color:white; border:none; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer;">
+                            ✅ داخستن
+                        </button>
+                        <button onclick="printRestockReceipt('${modalId}')"
+                            style="flex:1; padding:12px; background:#28a745; color:white; border:none; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer;">
+                            🖨️ چاپکردن
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function printRestockReceipt(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            const content = modal.querySelector('div > div').innerHTML;
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html dir="rtl"><head><meta charset="UTF-8">
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, sans-serif; direction: rtl; padding: 20px; }
+                    table { width:100%; border-collapse:collapse; }
+                    th { background:#667eea; color:white; padding:8px; }
+                    td { padding:7px; border-bottom:1px solid #eee; }
+                    @media print { button { display:none; } }
+                </style></head>
+                <body>${content}</body></html>
+            `);
+            win.document.close();
+            win.print();
+        }
+
+        // زیادکردنی کارت بۆ سەبەتە (هەمان سەبەتەی کاڵاکان) - کارت لێرە نافروشرێت ڕاستەوخۆ،
+        // بەڵکوو لەگەڵ کاڵاکانی تردا دەکەوێتە سەبەتە و لە کاتی تەواوکردنی فرۆشتن (completeSale) تۆمار دەکرێت
+        async function addCardToCart(id) {
+            const cards = await syncCards();
+            const card = cards.find(c => c.id === id);
+            if (!card) {
+                showToast('کارت نەدۆزرایەوە!', 'error');
+                return;
+            }
+
+            const cardCartKey = 'card__' + card.id;
+            const existingItem = cart.find(item => item.productId === cardCartKey);
+
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({
+                    productId: cardCartKey,
+                    name: '💳 ' + card.name,
+                    cardName: card.name,
+                    price: card.sellPrice,
+                    cost: card.costPrice,
+                    unit: 'کارت',
+                    quantity: 1,
+                    isCard: true,
+                    cardId: card.id
+                });
+            }
+
+            updateCart();
+            showToast(`✅ زیادکرا بۆ سەبەتە: ${card.name}`);
+        }
+
+        async function deleteCardSale(id) {
+            if (!confirm('دڵنیای دەتەوێت ئەم تۆمارە بسڕیتەوە؟')) return;
+            await deleteCardSaleFromDB(id);
+            await loadCardReports();
+            showToast('🗑️ تۆماری فرۆشتنی کارت سڕدرایەوە');
+        }
+
+        // پیشاندانی کارتەکان لە بەشی فرۆشتن (POS)، یەکجار لەژێر خشتەی کاڵاکان - کلیک = زیادکردن بۆ سەبەتە
+        async function displayCardsInPOS() {
+            const cards = await syncCards();
+            const grid = document.getElementById('posCardGrid');
+            if (!grid) return;
+
+            if (cards.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; padding: 15px; color: #999;">هیچ کارتێک زیاد نەکراوە - لە تابی "💳 کارت" کارتی نوێ زیادبکە</div>';
+                return;
+            }
+
+            grid.innerHTML = cards.map(c => {
+                const stock = c.stock || 0;
+                return `
+                <button class="product-btn" onclick="addCardToCart('${c.id}')">
+                    <div class="product-name">💳 ${c.name}</div>
+                    <div class="product-price">${c.sellPrice.toLocaleString()} د.ع</div>
+                    <small style="color:#667eea; font-weight:bold; font-size:11px;">📦 ${stock}</small>
+                </button>
+            `}).join('');
+        }
+
+        async function loadCards() {
+            const cards = await syncCards();
+
+            // گرید فرۆشتنی خێرا (زیادکردن بۆ سەبەتە)
+            const grid = document.getElementById('cardSellGrid');
+            if (grid) {
+                if (cards.length === 0) {
+                    grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">هیچ کارتێک زیاد نەکراوە - لە خوارەوە کارتی نوێ زیادبکە</div>';
+                } else {
+                    grid.innerHTML = cards.map(c => {
+                        const stock = c.stock || 0;
+                        return `
+                        <button class="product-btn" onclick="addCardToCart('${c.id}')">
+                            <div class="product-name">💳 ${c.name}</div>
+                            <div class="product-price">${c.sellPrice.toLocaleString()} د.ع</div>
+                            <small style="color:#667eea; font-weight:bold; font-size:11px;">📦 ${stock}</small>
+                        </button>
+                    `}).join('');
+                }
+            }
+
+            // خشتەی بەڕێوەبردنی جۆرەکانی کارت
+            const tbody = document.getElementById('cardsTableBody');
+            if (tbody) {
+                if (cards.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">هیچ کارتێک زیاد نەکراوە</td></tr>';
+                } else {
+                    tbody.innerHTML = cards.map(c => {
+                        const margin = c.sellPrice - c.costPrice;
+                        const stock = c.stock || 0;
+                        const lastRestocked = c.lastRestocked 
+                            ? new Date(c.lastRestocked).toLocaleString('ckb', {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})
+                            : '---';
+                        return `
+                        <tr>
+                            <td>💳 ${c.name}</td>
+                            <td>${c.costPrice.toLocaleString()}</td>
+                            <td>${c.sellPrice.toLocaleString()}</td>
+                            <td class="${margin >= 0 ? 'profit-positive' : 'profit-negative'}">${margin.toLocaleString()}</td>
+                            <td>
+                                <span class="badge badge-success">${stock.toLocaleString()} کارت</span>
+                            </td>
+                            <td style="font-size:12px; color:#666;">${lastRestocked}</td>
+                            <td>
+                                <button class="btn btn-success" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;"
+                                        onclick="addCardToCart('${c.id}')">🛒 سەبەتە</button>
+                                <button class="btn btn-primary" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;"
+                                        onclick="restockCard('${c.id}')" title="زیادکردنی ڕەسید بۆ هەموو جۆرەکان">📦 ڕەسیدی هەمووان</button>
+                                <button class="btn btn-info" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;"
+                                        onclick="editCard('${c.id}')">✏️</button>
+                                <button class="btn btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;"
+                                        onclick="deleteCard('${c.id}')">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                    }).join('');
+                }
+            }
+        }
+
+        function onCardReportRangeChange() {
+            const range = document.getElementById('cardReportRangeSelect')?.value;
+            const from = document.getElementById('cardReportFromDate');
+            const to = document.getElementById('cardReportToDate');
+            const toLabel = document.getElementById('cardReportToDateLabel');
+            const showCustom = range === 'custom';
+            if (from) from.style.display = showCustom ? 'inline-block' : 'none';
+            if (to) to.style.display = showCustom ? 'inline-block' : 'none';
+            if (toLabel) toLabel.style.display = showCustom ? 'inline' : 'none';
+            if (!showCustom) loadCardReports();
+        }
+
+        function getCardReportDateRange() {
+            const range = document.getElementById('cardReportRangeSelect')?.value || 'all';
+            const now = new Date();
+            let start, end;
+            end = new Date(now); end.setHours(23, 59, 59, 999);
+
+            if (range === 'today') {
+                start = new Date(now); start.setHours(0, 0, 0, 0);
+            } else if (range === 'week') {
+                start = new Date(now); start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0);
+            } else if (range === 'month') {
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+            } else if (range === 'custom') {
+                const fromVal = document.getElementById('cardReportFromDate')?.value;
+                const toVal = document.getElementById('cardReportToDate')?.value;
+                start = fromVal ? new Date(fromVal + 'T00:00:00') : new Date(0);
+                end = toVal ? new Date(toVal + 'T23:59:59') : end;
+            } else { // all
+                start = new Date(0);
+            }
+            return { start, end };
+        }
+
+        // ==================== ڕەسیدی گشتی (باڵانسی گشتی) ====================
+
+        function getGeneralReceiptLocal() {
+            try {
+                return JSON.parse(localStorage.getItem('generalReceipt') || 'null') || { balance: 0, history: [] };
+            } catch (e) {
+                return { balance: 0, history: [] };
+            }
+        }
+
+        function saveGeneralReceiptLocal(data) {
+            localStorage.setItem('generalReceipt', JSON.stringify(data));
+        }
+
+        async function syncGeneralReceipt() {
+            if (!navigator.onLine) {
+                return getGeneralReceiptLocal();
+            }
+            try {
+                const doc = await db.collection('settings').doc('generalReceipt').get({ source: 'server' });
+                if (doc.exists) {
+                    const data = doc.data();
+                    data.history = data.history || [];
+                    saveGeneralReceiptLocal(data);
+                    return data;
+                }
+                return getGeneralReceiptLocal();
+            } catch (error) {
+                console.error('Error syncing general receipt:', error);
+                return getGeneralReceiptLocal();
+            }
+        }
+
+        async function saveGeneralReceipt(data) {
+            saveGeneralReceiptLocal(data);
+            if (!navigator.onLine) {
+                queueForSync('generalReceipt', data);
+                return false;
+            }
+            try {
+                await db.collection('settings').doc('generalReceipt').set(data);
+                return true;
+            } catch (error) {
+                console.error('Error saving general receipt:', error);
+                queueForSync('generalReceipt', data);
+                return false;
+            }
+        }
+
+        function pushReceiptHistory(data, entry) {
+            data.history = data.history || [];
+            data.history.unshift(entry);
+            // تەنیا دواین ٣٠٠ تۆمار ڕاگرە، بۆ ئەوەی قەبارەی داتا زۆر نەبێت
+            if (data.history.length > 300) data.history = data.history.slice(0, 300);
+        }
+
+        // زیادکردنی بڕی ڕەسیدی نوێ بۆ باڵانسی گشتی (هەرکات ڕەسید بکڕیت، دەتوانیت دووبارە زیادبکەیت)
+        async function applyReceiptTopup() {
+            const input = document.getElementById('receiptTopupInput');
+            const amount = parseFloat(input?.value);
+            if (!amount || amount <= 0) { showToast('تکایە بڕێکی دروست بنووسە', 'error'); return; }
+
+            const data = await syncGeneralReceipt();
+            data.balance = (data.balance || 0) + amount;
+            pushReceiptHistory(data, {
+                date: new Date().toISOString(),
+                type: 'topup',
+                amount: amount,
+                balanceAfter: data.balance,
+                note: 'زیادکردنی ڕەسید'
+            });
+            await saveGeneralReceipt(data);
+
+            if (input) input.value = '';
+            renderGeneralReceiptUI(data);
+            showToast(`✅ ${amount.toLocaleString()} د.ع زیادکرا بۆ ڕەسیدی گشتی`);
+        }
+
+        // کەمکردنەوەی بڕێک بەدەستی لە باڵانسی گشتی (بۆ ڕاستکردنەوەی هەڵە، زیان، یان هۆکارێکی تر)
+        async function applyReceiptDeduction() {
+            const input = document.getElementById('receiptTopupInput');
+            const amount = parseFloat(input?.value);
+            if (!amount || amount <= 0) { showToast('تکایە بڕێکی دروست بنووسە', 'error'); return; }
+
+            const data = await syncGeneralReceipt();
+            data.balance = (data.balance || 0) - amount;
+            pushReceiptHistory(data, {
+                date: new Date().toISOString(),
+                type: 'manual_deduction',
+                amount: -amount,
+                balanceAfter: data.balance,
+                note: 'کەمکردنەوەی دەستی'
+            });
+            await saveGeneralReceipt(data);
+
+            if (input) input.value = '';
+            renderGeneralReceiptUI(data);
+            showToast(`➖ ${amount.toLocaleString()} د.ع کەمکرایەوە لە ڕەسیدی گشتی`);
+
+            if (data.balance <= 0) {
+                showToast(`🔴 ڕەسیدی گشتی تەواوبوو! باڵانس: ${data.balance.toLocaleString()} د.ع`, 'error');
+            }
+        }
+
+        // کەمکردنەوەی باڵانسی گشتی بەپێی نرخی کڕینی کارتی فرۆشراو (بانگ دەکرێت لە completeSale)
+        async function deductFromGeneralReceipt(amount, note) {
+            if (!amount || amount <= 0) return;
+            const data = await syncGeneralReceipt();
+            data.balance = (data.balance || 0) - amount;
+            pushReceiptHistory(data, {
+                date: new Date().toISOString(),
+                type: 'sale',
+                amount: -amount,
+                balanceAfter: data.balance,
+                note: note || 'فرۆشتنی کارت'
+            });
+            await saveGeneralReceipt(data);
+            renderGeneralReceiptUI(data);
+
+            if (data.balance <= 0) {
+                showToast(`🔴 ڕەسیدی گشتی تەواوبوو! باڵانس: ${data.balance.toLocaleString()} د.ع`, 'error');
+            }
+            return data.balance;
+        }
+
+        function renderGeneralReceiptUI(data) {
+            data = data || getGeneralReceiptLocal();
+            const bal = data.balance || 0;
+            const balanceEl = document.getElementById('generalReceiptBalanceDisplay');
+            if (balanceEl) {
+                balanceEl.textContent = bal.toLocaleString() + ' د.ع';
+                balanceEl.style.color = bal <= 0 ? '#ffd6d6' : 'white';
+            }
+            const statEl = document.getElementById('generalReceiptStatValue');
+            if (statEl) statEl.textContent = bal.toLocaleString();
+
+            const tbody = document.getElementById('restockHistoryBody');
+            if (!tbody) return;
+            const history = data.history || [];
+            if (history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">هیچ چالاکیەکی ڕەسید تۆمارنەکراوە</td></tr>';
+                return;
+            }
+            tbody.innerHTML = history.slice(0, 100).map(h => {
+                const dateStr = h.date ? new Date(h.date).toLocaleString('ckb', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '---';
+                const isTopup = h.type === 'topup';
+                return `<tr>
+                    <td>${dateStr}</td>
+                    <td>${isTopup ? '➕ زیادکردنی ڕەسید' : '➖ ' + (h.note || 'فرۆشتنی کارت')}</td>
+                    <td style="font-weight:bold; color:${isTopup ? '#28a745' : '#dc3545'};">${isTopup ? '+' : ''}${(h.amount||0).toLocaleString()} د.ع</td>
+                    <td style="font-weight:bold; color:#667eea;">${(h.balanceAfter||0).toLocaleString()} د.ع</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function loadGeneralReceiptUI() {
+            const data = await syncGeneralReceipt();
+            renderGeneralReceiptUI(data);
+        }
+
+
+        async function loadCardReports() {
+            await loadCards();
+            await loadGeneralReceiptUI();
+            const cardSales = await syncCardSales();
+            const cards = await syncCards();
+            const { start, end } = getCardReportDateRange();
+
+            const periodSales = cardSales.filter(s => {
+                if (!s.createdAt) return false;
+                const d = new Date(s.createdAt);
+                return d >= start && d <= end;
+            });
+
+            const totalQty = periodSales.reduce((sum, s) => sum + (s.quantity || 0), 0);
+            const totalCost = periodSales.reduce((sum, s) => sum + (s.totalCost || 0), 0);
+            const totalSell = periodSales.reduce((sum, s) => sum + (s.totalSell || 0), 0);
+            const totalProfit = periodSales.reduce((sum, s) => sum + (s.profit || 0), 0);
+
+            // ئامارەکانی ڕەسید
+            const totalStock = cards.reduce((sum, c) => sum + (c.stock || 0), 0);
+
+            const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            setText('cardTotalSoldQty', totalQty.toLocaleString());
+            setText('cardTotalCost', totalCost.toLocaleString());
+            setText('cardTotalSell', totalSell.toLocaleString());
+            setText('cardTotalProfit', totalProfit.toLocaleString());
+            setText('cardTotalStock', totalStock.toLocaleString());
+
+            const tbody = document.getElementById('cardSalesTableBody');
+            if (!tbody) return;
+
+            if (periodSales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">هیچ فرۆشتنێکی کارت نییە بۆ ئەم ماوەیە</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = periodSales.slice(0, 100).map(s => `
+                <tr class="${s.offlineSaved ? 'offline-row' : ''}">
+                    <td>
+                        ${s.offlineSaved ? '<span class="offline-badge">📵 ئۆفلاین</span>' : ''}
+                        ${s.createdAt ? new Date(s.createdAt).toLocaleString('ckb') : 'N/A'}
+                    </td>
+                    <td>💳 ${s.cardName}</td>
+                    <td>${s.quantity}</td>
+                    <td>${(s.totalCost || 0).toLocaleString()} د.ع</td>
+                    <td>${(s.totalSell || 0).toLocaleString()} د.ع</td>
+                    <td class="${(s.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative'}">${(s.profit || 0).toLocaleString()} د.ع</td>
+                    <td>
+                        <button class="btn btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;"
+                                onclick="deleteCardSale('${s.id}')">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function exportCardSalesCSV() {
+            syncCardSales().then(cardSales => {
+                const { start, end } = getCardReportDateRange();
+                const periodSales = cardSales.filter(s => {
+                    if (!s.createdAt) return false;
+                    const d = new Date(s.createdAt);
+                    return d >= start && d <= end;
+                });
+                let csv = '\uFEFFبەروار,ناوی کارت,دانە,کۆی ڕەسید,کۆی فرۆشتن,سوود\n';
+                periodSales.forEach(s => {
+                    csv += `${s.createdAt ? new Date(s.createdAt).toLocaleString('ckb') : ''},${s.cardName},${s.quantity},${s.totalCost},${s.totalSell},${s.profit}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `کارت-${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                showToast('✅ فایلی فرۆشتنی کارت دەرهات');
+            });
         }
 
         // ==================== بەشی کڕیاران ====================
@@ -3527,13 +4538,37 @@
             refundAmount = Math.round(refundAmount);
             const refundProfit = refundAmount - refundCost;
 
-            // زیادکردنەوەی بڕی کاڵا بۆ کۆگا
+            // زیادکردنەوەی بڕی کاڵا بۆ کۆگا / گەڕاندنەوەی ڕەسیدی گشتی بۆ کارت
             const products = await syncProducts();
+            const allCards = await syncCards();
             for (const it of returnedItems) {
-                const product = products.find(p => p.id === it.productId);
-                if (product) {
-                    product.quantity = (product.quantity || 0) + it.qty;
-                    await saveProduct(product);
+                if (it.productId && it.productId.startsWith('card__')) {
+                    // کارت: ڕەسیدی گشتی زیاد دەبێت (کارت گەڕایەوە = ڕەسید گەڕایەوە)
+                    const cardId = it.productId.replace('card__', '');
+                    const returnedCard = allCards.find(c => c.id === cardId);
+                    if (returnedCard) {
+                        returnedCard.stock = Math.max(0, (returnedCard.stock || 0) - it.qty);
+                        await saveCard(returnedCard);
+                    }
+                    const returnCost = it.cost * it.qty;
+                    const receiptData = await syncGeneralReceipt();
+                    receiptData.balance = (receiptData.balance || 0) + returnCost;
+                    pushReceiptHistory(receiptData, {
+                        date: new Date().toISOString(),
+                        type: 'topup',
+                        amount: returnCost,
+                        balanceAfter: receiptData.balance,
+                        note: 'گەڕاندنەوەی کارت: ' + it.name + ' x ' + it.qty
+                    });
+                    await saveGeneralReceipt(receiptData);
+                    renderGeneralReceiptUI(receiptData);
+                } else {
+                    // کاڵای ئاسایی: بگەڕێوە بۆ کۆگا
+                    const product = products.find(p => p.id === it.productId);
+                    if (product) {
+                        product.quantity = (product.quantity || 0) + it.qty;
+                        await saveProduct(product);
+                    }
                 }
             }
 
@@ -3656,6 +4691,19 @@
         document.addEventListener('keydown', function(e) {
             const posSection = document.getElementById('posSection');
             const isPosActive = posSection && posSection.classList.contains('active');
+
+            // دوگمای Home: ئۆتۆماتیکی focus بچۆ بۆ سکانەری بارکۆد
+            if (e.key === 'Home') {
+                e.preventDefault();
+                if (!isPosActive) {
+                    showSection('pos');
+                } else {
+                    const barcodeInput = document.getElementById('barcodeInput');
+                    if (barcodeInput) barcodeInput.focus();
+                }
+                return;
+            }
+
             if (!isPosActive) return;
 
             const tag = (e.target.tagName || '').toLowerCase();
@@ -3690,8 +4738,8 @@
                 sectionEl.classList.add('active');
             }
 
-            const buttons = document.querySelectorAll('.nav-btn');
-            const sectionMap = { 'pos': 0, 'products': 1, 'customers': 2, 'reports': 3 };
+            const buttons = document.querySelectorAll('.nav-buttons .nav-btn');
+            const sectionMap = { 'pos': 0, 'products': 1, 'cards': 2, 'customers': 3, 'reports': 4 };
             if (sectionMap[sectionName] !== undefined) {
                 buttons[sectionMap[sectionName]].classList.add('active');
             }
@@ -3699,6 +4747,7 @@
             try {
                 if (sectionName === 'pos') {
                     await displayProducts();
+                    await displayCardsInPOS();
                     updateCart();
                     await loadCustomers();
                     renderCartTabs();
@@ -3707,8 +4756,15 @@
                         const invoiceEl = document.getElementById('invoiceNo');
                         if (invoiceEl) invoiceEl.textContent = currentInvoiceNo;
                     }
+                    // ئۆتۆماتیکی focus بچۆ بۆ سکانەری بارکۆد
+                    setTimeout(() => {
+                        const barcodeInput = document.getElementById('barcodeInput');
+                        if (barcodeInput) barcodeInput.focus();
+                    }, 100);
                 } else if (sectionName === 'products') {
                     await loadProducts();
+                } else if (sectionName === 'cards') {
+                    await loadCardReports();
                 } else if (sectionName === 'customers') {
                     await loadCustomers();
                 } else if (sectionName === 'reports') {
@@ -3751,11 +4807,18 @@
                 if (invoiceEl) invoiceEl.textContent = currentInvoiceNo;
                 
                 await displayProducts();
+                await displayCardsInPOS();
                 updateCart();
                 await loadCustomers();
                 updateDateTime();
                 renderCartTabs();
                 
+                // ئۆتۆماتیکی focus بچۆ بۆ سکانەری بارکۆد لە دەستپێکردندا
+                setTimeout(() => {
+                    const barcodeInput = document.getElementById('barcodeInput');
+                    if (barcodeInput) barcodeInput.focus();
+                }, 300);
+
                 updateConnectionStatus('online');
                 setInterval(updateDateTime, 1000);
                 console.log('POS system started successfully');
@@ -3768,6 +4831,7 @@
                 if (invoiceEl) invoiceEl.textContent = currentInvoiceNo;
                 
                 await displayProducts();
+                await displayCardsInPOS();
                 updateCart();
                 await loadCustomers();
                 updateDateTime();
