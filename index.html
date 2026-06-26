@@ -1,161 +1,209 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ckb" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>کاشێری زیرەک - SMART POS</title>
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root {
+            --bg:        #0D1117;
+            --surface:   #161B22;
+            --surface2:  #1C2330;
+            --surface3:  #21262D;
+            --border:    #30363D;
+            --border2:   #3D444D;
+            --amber:     #F59E0B;
+            --amber-dim: #92610A;
+            --amber-glow:rgba(245,158,11,0.18);
+            --green:     #10B981;
+            --green-dim: rgba(16,185,129,0.15);
+            --red:       #EF4444;
+            --red-dim:   rgba(239,68,68,0.15);
+            --blue:      #3B82F6;
+            --blue-dim:  rgba(59,130,246,0.15);
+            --purple:    #8B5CF6;
+            --purple-dim:rgba(139,92,246,0.15);
+            --cyan:      #06B6D4;
+            --yellow:    #EAB308;
+            --text:      #E6EDF3;
+            --text2:     #8B949E;
+            --text3:     #6E7681;
+            --radius:    10px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+            --shadow:    0 2px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+            --font-body: 'Inter', Tahoma, 'Segoe UI', sans-serif;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: #f0f2f5;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
             direction: rtl;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 0 auto;
-            padding: 10px;
+            padding: 12px 16px;
         }
 
-        /* هێدەر */
+        /* ===== HEADER ===== */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 14px 20px;
+            margin-bottom: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
+            box-shadow: var(--shadow);
         }
 
         .header h1 {
-            font-size: 24px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--amber);
+            letter-spacing: -0.3px;
         }
 
         .datetime {
-            font-size: 16px;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 15px;
+            font-size: 13px;
+            color: var(--text2);
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            padding: 7px 14px;
             border-radius: 20px;
+            font-variant-numeric: tabular-nums;
         }
 
         .connection-status {
-            font-size: 14px;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 15px;
+            font-size: 13px;
+            color: var(--text2);
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            padding: 7px 14px;
             border-radius: 20px;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 7px;
         }
 
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             display: inline-block;
+            flex-shrink: 0;
         }
 
-        .status-dot.online {
-            background: #4CAF50;
-            box-shadow: 0 0 10px #4CAF50;
-        }
-
-        .status-dot.offline {
-            background: #f44336;
-            box-shadow: 0 0 10px #f44336;
-        }
-
-        .status-dot.syncing {
-            background: #FFC107;
-            animation: blink 1s infinite;
-        }
+        .status-dot.online  { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .status-dot.offline { background: var(--red);   box-shadow: 0 0 8px var(--red); }
+        .status-dot.syncing { background: var(--amber); animation: blink 1s infinite; }
 
         @keyframes blink {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            50%       { opacity: 0.3; }
         }
 
         .nav-buttons {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             flex-wrap: wrap;
         }
 
         .nav-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s;
-            background: white;
-            color: #667eea;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+            background: var(--surface3);
+            color: var(--text2);
+            font-family: var(--font-body);
         }
 
         .nav-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border-color: var(--amber);
+            color: var(--amber);
+            background: var(--amber-glow);
         }
 
         .nav-btn.active {
-            background: #ffd700;
-            color: #333;
+            background: var(--amber);
+            color: #0D1117;
+            border-color: var(--amber);
+            font-weight: 700;
         }
 
-        /* بەشەکان */
-        .section {
-            display: none;
-            animation: fadeIn 0.5s;
+        .nav-btn.logout-btn {
+            background: var(--surface3);
+            color: var(--text2);
+        }
+        .nav-btn.logout-btn:hover {
+            border-color: var(--red);
+            color: var(--red);
+            background: var(--red-dim);
         }
 
-        .section.active {
-            display: block;
+        .current-user-badge {
+            font-size: 13px;
+            color: var(--text2);
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            padding: 7px 14px;
+            border-radius: 20px;
         }
+
+        /* ===== SECTIONS ===== */
+        .section { display: none; animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* دیزاینی کاشێر */
+        /* ===== POS LAYOUT ===== */
         .pos-layout {
             display: grid;
-            grid-template-columns: 1.5fr 1fr;
-            gap: 15px;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 14px;
         }
 
-        @media (max-width: 768px) {
-            .pos-layout {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width: 900px) {
+            .pos-layout { grid-template-columns: 1fr; }
         }
 
+        /* ===== CARDS ===== */
         .card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            margin-bottom: 14px;
         }
 
         .card-header {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -163,590 +211,681 @@
             gap: 10px;
         }
 
-        /* سکانەری بارکۆد */
+        /* ===== BARCODE SCANNER ===== */
         .barcode-scanner {
-            background: #f8f9fa;
-            border: 2px dashed #667eea;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
+            background: var(--surface2);
+            border: 2px dashed var(--border2);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 14px;
             text-align: center;
+        }
+
+        .barcode-scanner h4 {
+            color: var(--text2);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .barcode-scanner input {
             width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
+            padding: 13px 16px;
+            font-size: 17px;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
             text-align: center;
-            transition: all 0.3s;
+            color: var(--text);
+            transition: all 0.2s;
+            font-family: var(--font-body);
         }
+
+        .barcode-scanner input::placeholder { color: var(--text3); }
 
         .barcode-scanner input:focus {
-            border-color: #667eea;
+            border-color: var(--amber);
             outline: none;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 0 0 3px var(--amber-glow);
         }
 
-        /* لیستی کاڵاکان */
+        .barcode-scanner input.scan-success {
+            border-color: var(--green) !important;
+            box-shadow: 0 0 0 3px var(--green-dim) !important;
+        }
+
+        .barcode-scanner input.scan-error {
+            border-color: var(--red) !important;
+            box-shadow: 0 0 0 3px var(--red-dim) !important;
+        }
+
+        /* ===== PRODUCT GRID ===== */
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            max-height: 400px;
+            grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+            gap: 8px;
+            max-height: 380px;
             overflow-y: auto;
-            padding: 10px;
+            padding: 4px;
         }
 
+        .product-grid::-webkit-scrollbar { width: 5px; }
+        .product-grid::-webkit-scrollbar-track { background: transparent; }
+        .product-grid::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
         .product-btn {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px 10px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 8px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.18s;
             text-align: center;
             position: relative;
+            color: var(--text);
         }
 
         .product-btn:hover {
-            border-color: #667eea;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: var(--amber);
+            background: var(--amber-glow);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245,158,11,0.15);
         }
 
-        .product-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .product-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .product-btn:disabled:hover { transform: none; border-color: var(--border); background: var(--surface2); box-shadow: none; }
 
         .product-name {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text);
         }
 
         .product-price {
-            font-size: 16px;
-            color: #667eea;
-            font-weight: bold;
+            font-size: 14px;
+            color: var(--amber);
+            font-weight: 700;
         }
 
         .product-stock {
             position: absolute;
             top: 5px;
             left: 5px;
-            background: #28a745;
-            color: white;
+            background: var(--green);
+            color: #000;
             border-radius: 50%;
-            width: 25px;
-            height: 25px;
+            width: 22px;
+            height: 22px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
+            font-size: 10px;
+            font-weight: 700;
         }
 
-        .product-stock.low {
-            background: #dc3545;
-        }
+        .product-stock.low { background: var(--yellow); color: #000; }
+        .product-stock.out { background: var(--text3); }
 
-        .product-stock.out {
-            background: #6c757d;
-        }
-
-        /* سەبەتەی کڕین */
+        /* ===== CART SECTION ===== */
         .cart-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .cart-table th {
-            background: #667eea;
-            color: white;
-            padding: 10px;
-            font-size: 14px;
+            background: var(--surface3);
+            color: var(--text2);
+            padding: 10px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-bottom: 1px solid var(--border);
         }
 
         .cart-table td {
-            padding: 10px;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--border);
             font-size: 14px;
+            color: var(--text);
         }
 
+        .cart-table tr:last-child td { border-bottom: none; }
+
         .cart-table input[type="number"] {
-            width: 60px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            width: 65px;
+            padding: 6px 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
             text-align: center;
+            color: var(--text);
+            font-family: var(--font-body);
+        }
+
+        .cart-table input[type="number"]:focus {
+            border-color: var(--amber);
+            outline: none;
         }
 
         .btn-remove {
-            background: #dc3545;
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
+            background: var(--red-dim);
+            color: var(--red);
+            border: 1px solid rgba(239,68,68,0.3);
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s;
+            line-height: 1;
         }
 
         .btn-remove:hover {
-            background: #c82333;
-            transform: scale(1.1);
+            background: var(--red);
+            color: var(--text);
+            border-color: var(--red);
         }
 
-        /* کۆی گشتی */
+        /* ===== TOTAL SECTION ===== */
         .total-section {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            margin: 12px 0;
         }
 
         .total-row {
             display: flex;
             justify-content: space-between;
-            margin: 8px 0;
-            font-size: 16px;
+            align-items: center;
+            margin: 7px 0;
+            font-size: 15px;
+            color: var(--text2);
         }
 
         .total-row.final {
             font-size: 22px;
-            font-weight: bold;
-            color: #667eea;
-            border-top: 2px solid #667eea;
-            padding-top: 10px;
-            margin-top: 10px;
+            font-weight: 700;
+            color: var(--amber);
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+            margin-top: 12px;
         }
 
         .discount-input {
-            width: 100px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            width: 90px;
+            padding: 5px 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
             text-align: center;
+            color: var(--text);
+            font-family: var(--font-body);
         }
 
-        /* دوگمەکان */
+        /* ===== BUTTONS ===== */
         .btn {
-            padding: 12px 25px;
+            padding: 11px 20px;
             border: none;
-            border-radius: 25px;
+            border-radius: var(--radius);
             cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
             width: 100%;
-            margin: 5px 0;
+            margin: 4px 0;
+            font-family: var(--font-body);
+            letter-spacing: -0.1px;
         }
+
+        .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+        .btn:active { transform: translateY(0); }
 
         .btn-primary {
-            background: #667eea;
-            color: white;
+            background: var(--blue);
+            color: var(--text);
         }
+        .btn-primary:hover { background: #2563EB; }
 
         .btn-success {
-            background: #28a745;
-            color: white;
+            background: var(--green);
+            color: #000;
+            font-weight: 700;
+        }
+        .btn-success:hover { background: #059669; color: white; }
+
+        /* THE SIGNATURE ELEMENT: amber complete-sale button */
+        .btn-complete-sale {
+            background: var(--amber);
+            color: #0D1117;
+            font-weight: 800;
+            font-size: 16px;
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-complete-sale::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0);
+            transition: background 0.15s;
+        }
+        .btn-complete-sale:hover {
+            background: #D97706;
+            box-shadow: 0 0 0 3px var(--amber-glow), 0 6px 20px rgba(245,158,11,0.3);
+        }
+        .btn-complete-sale:focus {
+            animation: amberPulse 0.6s ease-out;
+        }
+        @keyframes amberPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(245,158,11,0.6); }
+            70%  { box-shadow: 0 0 0 12px rgba(245,158,11,0); }
+            100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
         }
 
         .btn-warning {
-            background: #ffc107;
-            color: #333;
+            background: var(--yellow);
+            color: #0D1117;
         }
+        .btn-warning:hover { background: #CA8A04; color: var(--text); }
 
         .btn-danger {
-            background: #dc3545;
-            color: white;
+            background: var(--red-dim);
+            color: var(--red);
+            border: 1px solid rgba(239,68,68,0.25);
         }
+        .btn-danger:hover { background: var(--red); color: var(--text); border-color: var(--red); }
 
         .btn-info {
-            background: #17a2b8;
-            color: white;
+            background: var(--blue-dim);
+            color: var(--blue);
+            border: 1px solid rgba(59,130,246,0.25);
         }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
+        .btn-info:hover { background: var(--blue); color: white; border-color: var(--blue); }
 
         .btn-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 8px;
         }
 
-        /* فۆڕمەکان */
-        .form-group {
-            margin-bottom: 15px;
-        }
+        /* ===== FORMS ===== */
+        .form-group { margin-bottom: 14px; }
 
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text2);
         }
 
         .form-control {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.3s;
+            padding: 11px 14px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 15px;
+            color: var(--text);
+            transition: all 0.2s;
+            font-family: var(--font-body);
         }
 
+        .form-control::placeholder { color: var(--text3); }
+
         .form-control:focus {
-            border-color: #667eea;
+            border-color: var(--amber);
             outline: none;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 0 0 3px var(--amber-glow);
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B949E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 14px center;
+            padding-left: 36px;
         }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 14px;
         }
 
         @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
+            .form-row { grid-template-columns: 1fr; }
         }
 
-        /* خشتەکان */
+        /* ===== TABLES ===== */
         .table {
             width: 100%;
             border-collapse: collapse;
-            margin: 15px 0;
+            margin: 12px 0;
         }
 
         .table th {
-            background: #667eea;
-            color: white;
-            padding: 12px;
+            background: var(--surface3);
+            color: var(--text2);
+            padding: 11px 12px;
             text-align: right;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            border-bottom: 1px solid var(--border);
         }
 
         .table td {
-            padding: 10px;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text);
         }
 
-        .table tr:hover {
-            background: #f8f9fa;
-        }
+        .table tr:hover td { background: var(--surface2); }
+        .table tr:last-child td { border-bottom: none; }
 
+        /* ===== BADGES ===== */
         .badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
         }
 
-        .badge-success {
-            background: #28a745;
-            color: white;
-        }
+        .badge-success { background: var(--green-dim); color: var(--green); }
+        .badge-danger  { background: var(--red-dim);   color: var(--red); }
+        .badge-warning { background: rgba(234,179,8,0.15); color: var(--yellow); }
+        .badge-info    { background: var(--blue-dim);  color: var(--blue); }
 
-        .badge-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .badge-warning {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .badge-info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        /* ئاگادارکردنەوە */
+        /* ===== ALERTS ===== */
         .alert {
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            font-weight: bold;
+            padding: 13px 16px;
+            border-radius: var(--radius);
+            margin: 12px 0;
+            font-weight: 600;
+            font-size: 14px;
         }
 
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
+        .alert-success { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+        .alert-danger  { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
 
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* پسوڵەی چاپ */
+        /* ===== PRINT ===== */
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #printArea, #printArea * {
-                visibility: visible;
-            }
-            #printArea {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
         }
 
-        #printArea {
-            display: none;
-            padding: 20px;
-            font-family: 'Courier New', monospace;
-        }
+        #printArea { display: none; padding: 20px; font-family: 'Courier New', monospace; }
 
-        .search-box {
-            margin-bottom: 15px;
-        }
+        /* ===== SEARCH ===== */
+        .search-box { margin-bottom: 14px; }
 
+        /* ===== STATS GRID ===== */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 16px;
             text-align: center;
+            box-shadow: var(--shadow);
+            transition: border-color 0.2s;
+        }
+
+        .stat-card:hover { border-color: var(--amber); }
+
+        .stat-card p {
+            font-size: 12px;
+            color: var(--text2);
+            font-weight: 500;
+            margin-bottom: 6px;
         }
 
         .stat-card h3 {
-            font-size: 32px;
-            margin: 10px 0;
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--amber);
+            margin: 6px 0;
+            font-variant-numeric: tabular-nums;
         }
 
-        .stat-card p {
-            font-size: 14px;
-            opacity: 0.9;
+        .stat-card p:last-child {
+            font-size: 11px;
+            color: var(--text3);
+            margin-top: 4px;
+            margin-bottom: 0;
         }
 
-        /* دوگمەی هاوکاتکردن */
+        /* Colored stat cards */
+        .stat-card.cost   { --accent: #F87171; }
+        .stat-card.value  { --accent: #38BDF8; }
+        .stat-card.profit { --accent: var(--green); }
+        .stat-card.warn   { --accent: var(--yellow); }
+        .stat-card.cost h3, .stat-card.value h3, .stat-card.profit h3, .stat-card.warn h3 {
+            color: var(--accent);
+        }
+
+        /* ===== SYNC BUTTON ===== */
         .sync-btn {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 15px;
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(16,185,129,0.3);
+            padding: 7px 14px;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
-            margin-right: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: var(--font-body);
+            transition: all 0.2s;
         }
 
-        .sync-btn:hover {
-            background: #218838;
-        }
+        .sync-btn:hover { background: var(--green); color: #000; }
 
-        /* دوگمەی کامێرا */
+        /* ===== CAMERA BTN ===== */
         .camera-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
+            background: var(--purple-dim);
+            color: var(--purple);
+            border: 1px solid rgba(139,92,246,0.3);
+            padding: 10px 18px;
+            border-radius: var(--radius);
             cursor: pointer;
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 600;
             margin-top: 10px;
             width: 100%;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            font-family: var(--font-body);
         }
 
-        .camera-btn:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-        }
+        .camera-btn:hover { background: var(--purple); color: var(--text); border-color: var(--purple); }
 
-        .barcode-scanner input.scan-success {
-            border-color: #28a745 !important;
-            box-shadow: 0 0 15px rgba(40, 167, 69, 0.5) !important;
-        }
-
-        .barcode-scanner input.scan-error {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 15px rgba(220, 53, 69, 0.5) !important;
-        }
-
-        /* نموونەکانی ئۆفلاین */
+        /* ===== OFFLINE BADGES ===== */
         .offline-badge {
             display: inline-block;
-            background: #f44336;
-            color: white;
-            font-size: 11px;
-            padding: 2px 7px;
-            border-radius: 10px;
-            margin-right: 6px;
-            font-weight: bold;
+            background: var(--red-dim);
+            color: var(--red);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-right: 5px;
+            font-weight: 700;
             vertical-align: middle;
         }
 
-        .offline-row {
-            background: #fff5f5 !important;
-            border-right: 4px solid #f44336;
-        }
+        .offline-row { background: rgba(239,68,68,0.05) !important; border-right: 3px solid var(--red); }
+        .offline-row td { color: #FCA5A5 !important; }
 
-        .offline-row td {
-            color: #c62828 !important;
-        }
-
-        .synced-row {
-            animation: syncFlash 1.5s ease forwards;
-        }
+        .synced-row { animation: syncFlash 1.5s ease forwards; }
 
         @keyframes syncFlash {
-            0% { background: #e8f5e9; }
-            50% { background: #a5d6a7; }
+            0%   { background: rgba(16,185,129,0.15); }
+            50%  { background: rgba(16,185,129,0.08); }
             100% { background: transparent; }
         }
 
-        /* مۆداڵی کامێرا */
+        /* ===== SCANNER MODAL ===== */
         .scanner-modal {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
         }
 
-        .scanner-modal.active {
-            display: flex;
-        }
+        .scanner-modal.active { display: flex; }
 
         .scanner-modal-content {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 24px;
             max-width: 450px;
             width: 90%;
             text-align: center;
+            box-shadow: var(--shadow-lg);
         }
 
-        #cameraReader {
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
+        .scanner-modal-content h3 { color: var(--text); font-size: 17px; margin-bottom: 8px; }
 
+        #cameraReader { border-radius: var(--radius); overflow: hidden; margin: 14px 0; }
+
+        /* ===== RETURN MODAL ===== */
         .return-item-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        .return-item-row .ri-name {
-            flex: 1;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .return-item-row .ri-sold {
-            font-size: 12px;
-            color: #888;
-        }
+        .return-item-row:last-child { border-bottom: none; }
+        .return-item-row .ri-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--text); }
+        .return-item-row .ri-sold { font-size: 12px; color: var(--text3); }
 
         .return-item-row input[type="number"] {
             width: 70px;
-            padding: 8px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            padding: 7px 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 7px;
             text-align: center;
+            color: var(--text);
+            font-family: var(--font-body);
         }
 
-        /* تۆست - ئاگادارکردنەوەی خێرا */
+        /* ===== TOAST ===== */
         .toast-container {
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 16px;
+            left: 16px;
             z-index: 2000;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
         .toast {
-            background: white;
-            border-right: 5px solid #28a745;
-            border-radius: 10px;
-            padding: 14px 18px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            min-width: 250px;
-            font-weight: bold;
-            animation: toastIn 0.3s ease;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-right: 4px solid var(--green);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-lg);
+            min-width: 240px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            animation: toastIn 0.25s ease;
         }
 
-        .toast.error { border-right-color: #dc3545; }
-        .toast.warning { border-right-color: #ffc107; }
+        .toast.error   { border-right-color: var(--red);    }
+        .toast.warning { border-right-color: var(--yellow);  }
 
         @keyframes toastIn {
-            from { transform: translateX(-30px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from { transform: translateX(-20px); opacity: 0; }
+            to   { transform: translateX(0);     opacity: 1; }
         }
 
-        /* تۆڕی کۆگا - ئامارەکان */
-        .stat-card.cost { background: linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%); color: #5a2a32; }
-        .stat-card.value { background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%); }
-        .stat-card.profit { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-        .stat-card.warn { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); color: #5a3d00; }
-
+        /* ===== TOOLBAR ===== */
         .toolbar {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 14px;
         }
 
         .toolbar select {
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
+            padding: 9px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
             font-size: 14px;
+            font-family: var(--font-body);
+            cursor: pointer;
         }
 
-        .table tr.row-out { background: #fdeaea; }
-        .table tr.row-low { background: #fff8e6; }
+        .toolbar select:focus { border-color: var(--amber); outline: none; }
 
-        .profit-positive { color: #28a745; font-weight: bold; }
-        .profit-negative { color: #dc3545; font-weight: bold; }
+        /* ===== EXPORT BTN ===== */
+        .export-btn {
+            background: var(--cyan);
+            color: #000;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: var(--font-body);
+            transition: all 0.2s;
+        }
 
-        .expiry-ok { color: #28a745; font-weight: bold; }
-        .expiry-soon { color: #e67e22; font-weight: bold; background: #fff3cd; padding: 2px 6px; border-radius: 8px; }
-        .expiry-expired { color: #dc3545; font-weight: bold; background: #f8d7da; padding: 2px 6px; border-radius: 8px; animation: expiredPulse 1.5s infinite; }
+        .export-btn:hover { background: #0891B2; color: var(--text); }
+
+        /* ===== TABLE ROW STATES ===== */
+        .table tr.row-out td { color: var(--red) !important; }
+        .table tr.row-low td { color: var(--yellow) !important; }
+        .table tr.row-expired { background: rgba(239,68,68,0.05) !important; border-right: 3px solid var(--red); }
+
+        .profit-positive { color: var(--green) !important; font-weight: 700; }
+        .profit-negative { color: var(--red)   !important; font-weight: 700; }
+
+        /* ===== EXPIRY ===== */
+        .expiry-ok      { color: var(--green); font-weight: 700; }
+        .expiry-soon    { color: var(--yellow); font-weight: 700; background: rgba(234,179,8,0.12); padding: 2px 6px; border-radius: 6px; }
+        .expiry-expired { color: var(--red); font-weight: 700; background: var(--red-dim); padding: 2px 6px; border-radius: 6px; animation: expiredPulse 2s infinite; }
+
         @keyframes expiredPulse {
-            0%, 100% { background: #f8d7da; }
-            50% { background: #f5c6cb; }
+            0%,100% { background: var(--red-dim); }
+            50%     { background: rgba(239,68,68,0.25); }
         }
-        .table tr.row-expired { background: #fff0f0 !important; border-right: 4px solid #dc3545; }
 
-        /* سیستەمی سێ کرین */
+        /* ===== CART TABS ===== */
         .cart-tabs-bar {
             display: flex;
             flex-wrap: wrap;
@@ -754,72 +893,79 @@
             align-items: center;
             margin-bottom: 10px;
             padding: 8px 10px;
-            background: #f0f2f5;
-            border-radius: 10px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
         }
+
         .cart-tab {
             display: flex;
             align-items: center;
             gap: 5px;
-            padding: 7px 14px;
-            background: #fff;
-            border: 2px solid #ddd;
-            border-radius: 20px;
+            padding: 6px 12px;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            border-radius: 16px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text2);
             transition: all 0.2s;
         }
+
         .cart-tab.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
+            background: var(--amber);
+            color: #0D1117;
+            border-color: var(--amber);
         }
+
         .cart-tab:not(.active):hover {
-            border-color: #667eea;
-            color: #667eea;
+            border-color: var(--amber);
+            color: var(--amber);
+            background: var(--amber-glow);
         }
+
         .cart-tab-badge {
-            background: #ffd700;
-            color: #333;
+            background: var(--surface);
+            color: var(--amber);
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .cart-tab.active .cart-tab-badge {
-            background: rgba(255,255,255,0.8);
-        }
-        .cart-tab-close {
-            font-size: 12px;
-            opacity: 0.7;
-            padding: 1px 4px;
-            border-radius: 50%;
-        }
-        .cart-tab-close:hover {
-            opacity: 1;
-            background: rgba(220,53,69,0.25);
-        }
-        .cart-tab-add {
-            padding: 7px 14px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-        .cart-tab-add:hover {
-            background: #218838;
+            font-size: 10px;
+            font-weight: 700;
         }
 
-        /* خشتەی بارچارت سادە بۆ ڕاپۆرت */
+        .cart-tab.active .cart-tab-badge { background: rgba(0,0,0,0.2); color: #0D1117; }
+
+        .cart-tab-close {
+            font-size: 11px;
+            opacity: 0.5;
+            padding: 2px 3px;
+            border-radius: 50%;
+            transition: all 0.15s;
+        }
+
+        .cart-tab-close:hover { opacity: 1; background: rgba(239,68,68,0.3); color: var(--red); }
+
+        .cart-tab-add {
+            padding: 6px 12px;
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: var(--font-body);
+            transition: all 0.2s;
+        }
+
+        .cart-tab-add:hover { background: var(--green); color: #000; border-color: var(--green); }
+
+        /* ===== BAR CHARTS (REPORTS) ===== */
         .bar-row {
             display: flex;
             align-items: center;
@@ -830,7 +976,8 @@
         .bar-label {
             width: 130px;
             font-size: 13px;
-            font-weight: bold;
+            font-weight: 600;
+            color: var(--text2);
             flex-shrink: 0;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -839,45 +986,32 @@
 
         .bar-track {
             flex: 1;
-            background: #f0f0f0;
-            border-radius: 10px;
-            height: 22px;
+            background: var(--surface3);
+            border-radius: 6px;
+            height: 20px;
             overflow: hidden;
         }
 
         .bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            border-radius: 10px;
+            background: linear-gradient(90deg, var(--amber), #F97316);
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            padding: 0 8px;
-            color: white;
+            padding: 0 7px;
+            color: #000;
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 700;
             white-space: nowrap;
-            transition: width 0.6s ease;
+            transition: width 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
         }
 
-        .export-btn {
-            background: #17a2b8;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .export-btn:hover { background: #138496; }
-
-        /* شاشەی چوونەژوورەوە (Login) */
+        /* ===== LOGIN OVERLAY ===== */
         .login-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: radial-gradient(ellipse at 60% 40%, #1a1f2e 0%, #0D1117 70%);
             z-index: 5000;
             display: none;
             align-items: center;
@@ -885,36 +1019,49 @@
             padding: 15px;
         }
 
-        .login-overlay.active {
-            display: flex;
+        .login-overlay::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%);
+            pointer-events: none;
         }
 
+        .login-overlay.active { display: flex; }
+
         .login-card {
-            background: white;
-            border-radius: 20px;
-            padding: 35px 30px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 40px 32px;
             max-width: 380px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            animation: fadeIn 0.4s;
+            box-shadow: var(--shadow-lg), 0 0 0 1px rgba(245,158,11,0.08);
+            animation: fadeIn 0.35s ease;
+            position: relative;
         }
 
         .login-card .login-logo {
-            font-size: 42px;
-            margin-bottom: 5px;
+            font-size: 44px;
+            margin-bottom: 6px;
+            display: block;
         }
 
         .login-card h2 {
-            color: #333;
+            color: var(--amber);
             margin-bottom: 5px;
             font-size: 20px;
+            font-weight: 700;
         }
 
         .login-card p.login-sub {
-            color: #888;
+            color: var(--text3);
             font-size: 13px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .login-card .form-group {
@@ -926,57 +1073,92 @@
             width: 100%;
             padding: 13px;
             font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             text-align: center;
-            transition: all 0.3s;
+            color: var(--text);
+            transition: all 0.2s;
+            font-family: var(--font-body);
         }
 
+        .login-card input::placeholder { color: var(--text3); }
+
         .login-card input:focus {
-            border-color: #667eea;
+            border-color: var(--amber);
             outline: none;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 0 0 3px var(--amber-glow);
         }
 
         .login-card .btn-login {
             width: 100%;
             padding: 13px;
             margin-top: 8px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--amber);
+            color: #0D1117;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--radius);
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 800;
             cursor: pointer;
-            transition: all 0.3s;
+            font-family: var(--font-body);
+            transition: all 0.2s;
         }
 
         .login-card .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #D97706;
+            box-shadow: 0 4px 16px rgba(245,158,11,0.3);
+            transform: translateY(-1px);
         }
 
         .login-error {
-            color: #dc3545;
+            color: var(--red);
             font-size: 13px;
             margin-top: 10px;
             min-height: 18px;
-            font-weight: bold;
+            font-weight: 600;
         }
 
-        .logout-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
+        /* ===== GENERAL RECEIPT BALANCE ===== */
+        .receipt-balance-bar {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-right: 3px solid var(--amber);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .current-user-badge {
-            font-size: 14px;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 15px;
-            border-radius: 20px;
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--surface2); }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+        /* ===== MOBILE ===== */
+        @media (max-width: 768px) {
+            .header { padding: 12px 14px; }
+            .header h1 { font-size: 17px; }
+            .card { padding: 14px; }
+        }
+
+        /* ===== INLINE STYLE OVERRIDES FOR DYNAMICALLY-GENERATED CONTENT ===== */
+        /* Make sure dynamic inline styles with old colors are overridden minimally */
+        [style*="background: linear-gradient(135deg, #667eea"] {
+            background: linear-gradient(135deg, var(--surface2), var(--surface3)) !important;
+        }
+
+        /* Package indicator */
+        .product-btn .product-name span[style*="background:#764ba2"] {
+            background: var(--purple) !important;
         }
     </style>
+</head>
 </head>
 <body>
     <!-- شاشەی چوونەژوورەوە (Login) -->
@@ -1033,7 +1215,7 @@
                     <div class="barcode-scanner">
                         <h4>📱 سکانەری بارکۆد</h4>
                         <input type="text" id="barcodeInput" placeholder="بارکۆد سکان بکە یان بنووسە..." autofocus>
-                        <small style="color: #666; display: block; margin-top: 5px;">Enter دابگرە دوای سکانکردن</small>
+                        <small style="color: var(--text2); display: block; margin-top: 5px;">Enter دابگرە دوای سکانکردن</small>
                         <button class="camera-btn" onclick="openCameraScanner('pos')">📷 سکانکردن بە کامێرای مۆبایل</button>
                     </div>
 
@@ -1044,7 +1226,7 @@
                             <input type="text" id="searchBox" class="form-control" style="width: 200px;" placeholder="گەڕان بە ناو یان بارکۆد...">
                         </div>
                         <div class="product-grid" id="productGrid">
-                            <div style="text-align: center; padding: 20px; color: #999;">کاڵاکان باردەکرێن...</div>
+                            <div style="text-align: center; padding: 20px; color: var(--text3);">کاڵاکان باردەکرێن...</div>
                         </div>
                     </div>
 
@@ -1054,7 +1236,7 @@
                             <span>💳 کارت</span>
                         </div>
                         <div class="product-grid" id="posCardGrid" style="max-height: 220px;">
-                            <div style="text-align: center; padding: 15px; color: #999;">کارتەکان باردەکرێن...</div>
+                            <div style="text-align: center; padding: 15px; color: var(--text3);">کارتەکان باردەکرێن...</div>
                         </div>
                     </div>
                 </div>
@@ -1066,7 +1248,7 @@
                     <div class="card">
                         <div class="card-header">
                             🛒 سەبەتەی کڕین
-                            <span id="invoiceNo" style="font-size: 14px; color: #666;"></span>
+                            <span id="invoiceNo" style="font-size: 14px; color: var(--text2);"></span>
                         </div>
                         
                         <div style="max-height: 300px; overflow-y: auto;">
@@ -1082,7 +1264,7 @@
                                 </thead>
                                 <tbody id="cartBody">
                                     <tr>
-                                        <td colspan="5" style="text-align: center; color: #999;">سەبەتە بەتاڵە</td>
+                                        <td colspan="5" style="text-align: center; color: var(--text3);">سەبەتە بەتاڵە</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1124,7 +1306,7 @@
 
                         <!-- دوگمەکان -->
                         <div class="btn-group">
-                            <button class="btn btn-success" onclick="completeSale()" title="کلیلی کۆمپیوتەر: End">✅ End</button>
+                            <button class="btn btn-complete-sale" onclick="completeSale()" title="کلیلی کۆمپیوتەر: End">✅ End</button>
                             <button class="btn btn-info" onclick="holdSale()">⏸️ راگرتن</button>
                         </div>
                         <button class="btn btn-warning" onclick="printLastReceipt()" title="کلیلی کۆمپیوتەر: F10">🖨️ چاپکردنی دواین پسوولە (F10)</button>
@@ -1163,7 +1345,7 @@
                     <h3 id="invTotalProfit">0</h3>
                     <p>دینار</p>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #dc3545 0%, #fd7e6a 100%);">
+                <div class="stat-card" style="background: var(--surface); border-color: var(--red);">
                     <p>⚠️ کاڵای کەم/تەواوبوو</p>
                     <h3 id="invLowCount">0</h3>
                     <p>کاڵا</p>
@@ -1196,7 +1378,7 @@
                 </div>
 
                 <!-- فۆڕمی زیادکردنی کاڵا -->
-                <div id="addProductForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="addProductForm" style="display: none; margin-bottom: 20px; background: var(--surface2); padding: 20px; border-radius: 10px;">
                     <h4>زیادکردنی کاڵای نوێ</h4>
                     <div class="form-row">
                         <div class="form-group">
@@ -1295,7 +1477,7 @@
                         </thead>
                         <tbody id="productsTableBody">
                             <tr>
-                                <td colspan="11" style="text-align: center; color: #999;">کاڵاکان باردەکرێن...</td>
+                                <td colspan="11" style="text-align: center; color: var(--text3);">کاڵاکان باردەکرێن...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1307,15 +1489,15 @@
         <div id="cardsSection" class="section">
 
             <!-- بەشی ڕەسیدی گشتی -->
-            <div class="card" style="border: 2px solid #667eea;">
-                <div class="card-header" style="color: #667eea;">
+            <div class="card" style="border: 1px solid #F59E0B;">
+                <div class="card-header" style="color: #F59E0B;">
                     📦 ڕەسیدی گشتی
                 </div>
 
                 <!-- باڵانسی ئێستا -->
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="background: var(--surface2); border: 1px solid var(--amber); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <span style="font-size: 16px;">💰 باڵانسی ڕەسیدی ماوە:</span>
-                    <strong id="generalReceiptBalanceDisplay" style="font-size: 26px;">0 د.ع</strong>
+                    <strong id="generalReceiptBalanceDisplay" style="font-size: 26px; color: var(--amber); font-weight: 800;">0 د.ع</strong>
                 </div>
 
                 <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
@@ -1323,7 +1505,7 @@
                         <label style="font-weight: bold; margin-bottom: 6px; display: block;">بڕ (د.ع):</label>
                         <input type="number" id="receiptTopupInput" class="form-control"
                             placeholder="بۆ نموونە: 200000"
-                            style="font-size: 20px; font-weight: bold; color: #667eea;">
+                            style="font-size: 20px; font-weight: bold; color: #F59E0B;">
                     </div>
                     <button class="btn btn-success" onclick="applyReceiptTopup()"
                         style="width: auto; padding: 12px 30px; font-size: 16px; white-space: nowrap; margin: 0;">
@@ -1376,7 +1558,7 @@
 
             <!-- ئامارەکانی کارت (سەربەخۆ لە ڕاپۆرتی کاڵا) -->
             <div class="stats-grid">
-                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="stat-card" style="background: var(--surface);">
                     <p>📦 باڵانسی ڕەسیدی گشتی</p>
                     <h3 id="generalReceiptStatValue">0</h3>
                     <p>دینار</p>
@@ -1401,7 +1583,7 @@
                     <h3 id="cardTotalProfit">0</h3>
                     <p>دینار</p>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                <div class="stat-card" style="background: var(--surface); border-color: var(--green);">
                     <p>📦 کۆی ڕەسیدی ماوە</p>
                     <h3 id="cardTotalStock">0</h3>
                     <p>کارت لە ڕەسیددا</p>
@@ -1416,7 +1598,7 @@
                 </div>
 
                 <!-- فۆڕمی زیادکردنی کارتی نوێ -->
-                <div id="addCardForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="addCardForm" style="display: none; margin-bottom: 20px; background: var(--surface2); padding: 20px; border-radius: 10px;">
                     <h4>زیادکردنی کارتی نوێ</h4>
                     <div class="form-row">
                         <div class="form-group">
@@ -1442,7 +1624,7 @@
 
                 <!-- دوگمەی فرۆشتنی خێرا بۆ هەر کارتێک -->
                 <div class="product-grid" id="cardSellGrid">
-                    <div style="text-align: center; padding: 20px; color: #999;">کارتەکان باردەکرێن...</div>
+                    <div style="text-align: center; padding: 20px; color: var(--text3);">کارتەکان باردەکرێن...</div>
                 </div>
 
                 <!-- خشتەی بەڕێوەبردنی جۆرەکانی کارت -->
@@ -1460,7 +1642,7 @@
                             </tr>
                         </thead>
                         <tbody id="cardsTableBody">
-                            <tr><td colspan="5" style="text-align: center; color: #999;">کارتەکان باردەکرێن...</td></tr>
+                            <tr><td colspan="5" style="text-align: center; color: var(--text3);">کارتەکان باردەکرێن...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1483,7 +1665,7 @@
                             </tr>
                         </thead>
                         <tbody id="cardSalesTableBody">
-                            <tr><td colspan="7" style="text-align: center; color: #999;">هیچ فرۆشتنێکی کارت نییە</td></tr>
+                            <tr><td colspan="7" style="text-align: center; color: var(--text3);">هیچ فرۆشتنێکی کارت نییە</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1499,7 +1681,7 @@
                     <button class="btn btn-primary" style="width: auto;" onclick="showAddCustomerForm()">+ کڕیاری نوێ</button>
                 </div>
 
-                <div id="addCustomerForm" style="display: none; margin-bottom: 20px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <div id="addCustomerForm" style="display: none; margin-bottom: 20px; background: var(--surface2); padding: 20px; border-radius: 10px;">
                     <h4>زیادکردنی کڕیاری نوێ</h4>
                     <div class="form-row">
                         <div class="form-group">
@@ -1538,7 +1720,7 @@
                         </thead>
                         <tbody id="customersTableBody">
                             <tr>
-                                <td colspan="5" style="text-align: center; color: #999;">کڕیاران باردەکرێن...</td>
+                                <td colspan="5" style="text-align: center; color: var(--text3);">کڕیاران باردەکرێن...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1589,12 +1771,12 @@
                     <h3 id="totalSales">0</h3>
                     <p>پسوولە</p>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+                <div class="stat-card" style="background: var(--surface); border-color: var(--text3);">
                     <p>🧾 تێچوونی کاڵای فرۆشراو</p>
                     <h3 id="periodCost">0</h3>
                     <p>دینار</p>
                 </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);">
+                <div class="stat-card" style="background: var(--surface); border-color: var(--red);">
                     <p>↩️ کۆی گەڕاندنەوەکان</p>
                     <h3 id="periodReturns">0</h3>
                     <p id="returnsCountLabel">0 پسوولە</p>
@@ -1639,7 +1821,7 @@
                         </thead>
                         <tbody id="salesTableBody">
                             <tr>
-                                <td colspan="7" style="text-align: center; color: #999;">ڕاپۆرتەکان باردەکرێن...</td>
+                                <td colspan="7" style="text-align: center; color: var(--text3);">ڕاپۆرتەکان باردەکرێن...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1660,7 +1842,7 @@
                         </thead>
                         <tbody id="returnsTableBody">
                             <tr>
-                                <td colspan="4" style="text-align: center; color: #999;">هیچ گەڕاندنەوەیەک نییە</td>
+                                <td colspan="4" style="text-align: center; color: var(--text3);">هیچ گەڕاندنەوەیەک نییە</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1692,7 +1874,7 @@
             <h3>📷 سکانی بارکۆد</h3>
             <p style="color:#666; font-size:13px; margin-top:5px;">کامێراکە ڕووبکەرە بارکۆدەکە. دەتوانیت چەند کاڵایەک پێکەوە بسکانیت، دواتر داخستن دابگرە.</p>
             <div id="cameraReader"></div>
-            <p id="scannerCount" style="font-weight:bold; color:#667eea; margin-bottom:10px;"></p>
+            <p id="scannerCount" style="font-weight:bold; color:#F59E0B; margin-bottom:10px;"></p>
             <button class="btn btn-danger" onclick="closeCameraScanner()">✅ تەواو / داخستن</button>
         </div>
     </div>
@@ -2553,7 +2735,7 @@
             );
 
             if (filtered.length === 0) {
-                grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">هیچ کاڵایەک نەدۆزرایەوە</div>';
+                grid.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text3);">هیچ کاڵایەک نەدۆزرایەوە</div>';
                 return;
             }
 
@@ -2567,7 +2749,7 @@
                         <div class="product-name">${p.name}</div>
                         <div class="product-price">${p.price.toLocaleString()} د.ع</div>
                         ${p.quantity <= 0 ? '<small style="color: red;">کۆگا نەماوە</small>' : ''}
-                        ${pkgSize >= 2 ? '<small style="color:#764ba2;font-size:11px;">📦پاکێت هەیە</small>' : ''}
+                        ${pkgSize >= 2 ? '<small style="color:#8B5CF6;font-size:11px;">📦پاکێت هەیە</small>' : ''}
                     </button>
                 `;
             }).join('');
@@ -2727,7 +2909,7 @@
             if (!tbody) return;
             
             if (cart.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">سەبەتە بەتاڵە</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text3);">سەبەتە بەتاڵە</td></tr>';
             } else {
                 // products cache for package info
                 const cachedProducts = JSON.parse(localStorage.getItem('products') || '[]');
@@ -2750,13 +2932,13 @@
                     if (!isPkg && hasPkg) {
                         switchBtn = `<button onclick="switchToPkg(${index}, '${realId}', ${pkgSize})"
                             title="گۆڕانی بۆ پاکێت: ${pkgPrice.toLocaleString()} د.ع"
-                            style="background:#764ba2;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;margin-top:3px;display:block;width:100%;">
+                            style="background:#8B5CF6;color:var(--text);border:none;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;margin-top:3px;display:block;width:100%;">
                             📦×${pkgSize}
                         </button>`;
                     } else if (isPkg) {
                         switchBtn = `<button onclick="switchToUnit(${index})"
                             title="گۆڕانی بۆ دانەیی"
-                            style="background:#667eea;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;margin-top:3px;display:block;width:100%;">
+                            style="background:#F59E0B;color:var(--text);border:none;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;margin-top:3px;display:block;width:100%;">
                             🔢 دانە
                         </button>`;
                     }
@@ -2765,7 +2947,7 @@
                         <tr style="${isPkg ? 'background:#f3effe;' : ''}">
                             <td>
                                 ${item.name}
-                                <small style="color:${isPkg ? '#764ba2' : '#667eea'};">(${unitLabel})</small>
+                                <small style="color:${isPkg ? '#8B5CF6' : '#F59E0B'};">(${unitLabel})</small>
                                 ${switchBtn}
                             </td>
                             <td>${item.price.toLocaleString()}</td>
@@ -3045,7 +3227,7 @@
             else filtered.sort((a, b) => a.name.localeCompare(b.name, 'ckb'));
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #999;">هیچ کاڵایەک نەدۆزرایەوە</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text3);">هیچ کاڵایەک نەدۆزرایەوە</td></tr>';
                 return;
             }
 
@@ -3074,8 +3256,8 @@
                     : (p.quantity <= p.alert ? '<span class="badge badge-warning">کەمە</span>' : '<span class="badge badge-success">باشە</span>');
                 return `
                 <tr class="${rowClass}">
-                    <td>${p.barcode}${(Array.isArray(p.extraBarcodes) && p.extraBarcodes.length) ? ` <span style="color:#667eea; font-size:11px;" title="${p.extraBarcodes.join(', ')}">(+${p.extraBarcodes.length})</span>` : ''}</td>
-                    <td>${p.name}${p.packageSize >= 2 ? ` <span style="background:#764ba2;color:white;border-radius:8px;padding:2px 6px;font-size:11px;">📦${p.packageSize}</span>` : ''}${isExpired ? ' <span style="color:#dc3545;font-weight:bold;font-size:11px;">⚠️ بەسەرچوو</span>' : ''}</td>
+                    <td>${p.barcode}${(Array.isArray(p.extraBarcodes) && p.extraBarcodes.length) ? ` <span style="color:#F59E0B; font-size:11px;" title="${p.extraBarcodes.join(', ')}">(+${p.extraBarcodes.length})</span>` : ''}</td>
+                    <td>${p.name}${p.packageSize >= 2 ? ` <span style="background:#8B5CF6;color:var(--text);border-radius:8px;padding:2px 6px;font-size:11px;">📦${p.packageSize}</span>` : ''}${isExpired ? ' <span style="color:#dc3545;font-weight:bold;font-size:11px;">⚠️ بەسەرچوو</span>' : ''}</td>
                     <td>${p.price.toLocaleString()}</td>
                     <td>${p.cost.toLocaleString()}</td>
                     <td>
@@ -3092,7 +3274,7 @@
                                 onclick="editProductPrice('${p.id}')">💲</button>
                         <button class="btn btn-info" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
                                 onclick="editProduct('${p.id}')">✏️</button>
-                        <button class="btn" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px; background:#764ba2; color:white;" 
+                        <button class="btn" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px; background:#8B5CF6; color:var(--text);" 
                                 onclick="manageExtraBarcodes('${p.id}')">🏷️</button>
                         <button class="btn btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
                                 onclick="deleteProduct('${p.id}')">🗑️</button>
@@ -3647,7 +3829,7 @@
             `;
             modal.innerHTML = `
                 <div style="
-                    background:#fff; border-radius:16px; padding:30px;
+                    background:var(--surface); border-radius:16px; padding:30px;
                     max-width:700px; width:95%; max-height:85vh; overflow-y:auto;
                     box-shadow:0 10px 40px rgba(0,0,0,0.3); direction:rtl;
                 ">
@@ -3657,15 +3839,15 @@
                         <p style="color:#888; margin:6px 0 0; font-size:14px;">📅 ${dateStr}</p>
                     </div>
 
-                    <div style="background:#f8f9fa; border-radius:10px; padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <div style="background:var(--surface2); border-radius:10px; padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                         <span style="font-size:15px;">📦 بڕی زیادکراو بۆ هەر کارتێک:</span>
-                        <strong style="font-size:18px; color:#667eea;">${parsedQty.toLocaleString()} کارت</strong>
+                        <strong style="font-size:18px; color:#F59E0B;">${parsedQty.toLocaleString()} کارت</strong>
                     </div>
 
                     <div style="overflow-x:auto; margin-bottom:18px;">
                         <table style="width:100%; border-collapse:collapse; font-size:14px;">
                             <thead>
-                                <tr style="background:#667eea; color:white;">
+                                <tr style="background:#F59E0B; color:var(--text);">
                                     <th style="padding:10px 8px; text-align:right;">ناوی کارت</th>
                                     <th style="padding:10px 8px; text-align:center;">بڕ (کۆن ➜ نوێ)</th>
                                     <th style="padding:10px 8px; text-align:center;">کۆی ڕەسید</th>
@@ -3677,7 +3859,7 @@
                         </table>
                     </div>
 
-                    <div style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; border-radius:12px; padding:16px 20px; margin-bottom:20px;">
+                    <div style="background:linear-gradient(135deg,#1a2540,#21262D); color:var(--text); border-radius:12px; padding:16px 20px; margin-bottom:20px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                             <span>💸 کۆی تێچوونی ڕەسید:</span>
                             <strong>${totalCostAll.toLocaleString()} د.ع</strong>
@@ -3694,11 +3876,11 @@
 
                     <div style="display:flex; gap:10px;">
                         <button onclick="document.getElementById('${modalId}').remove()"
-                            style="flex:1; padding:12px; background:#667eea; color:white; border:none; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer;">
+                            style="flex:1; padding:12px; background:#F59E0B; color:#000; border:none; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer;">
                             ✅ داخستن
                         </button>
                         <button onclick="printRestockReceipt('${modalId}')"
-                            style="flex:1; padding:12px; background:#28a745; color:white; border:none; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer;">
+                            style="flex:1; padding:12px; background:#10B981; color:#000; border:none; border-radius:25px; font-size:16px; font-weight:bold; cursor:pointer;">
                             🖨️ چاپکردن
                         </button>
                     </div>
@@ -3717,7 +3899,7 @@
                 <style>
                     body { font-family: 'Segoe UI', Tahoma, sans-serif; direction: rtl; padding: 20px; }
                     table { width:100%; border-collapse:collapse; }
-                    th { background:#667eea; color:white; padding:8px; }
+                    th { background:#F59E0B; color:var(--text); padding:8px; }
                     td { padding:7px; border-bottom:1px solid #eee; }
                     @media print { button { display:none; } }
                 </style></head>
@@ -3774,7 +3956,7 @@
             if (!grid) return;
 
             if (cards.length === 0) {
-                grid.innerHTML = '<div style="text-align: center; padding: 15px; color: #999;">هیچ کارتێک زیاد نەکراوە - لە تابی "💳 کارت" کارتی نوێ زیادبکە</div>';
+                grid.innerHTML = '<div style="text-align: center; padding: 15px; color: var(--text3);">هیچ کارتێک زیاد نەکراوە - لە تابی "💳 کارت" کارتی نوێ زیادبکە</div>';
                 return;
             }
 
@@ -3784,7 +3966,7 @@
                 <button class="product-btn" onclick="addCardToCart('${c.id}')">
                     <div class="product-name">💳 ${c.name}</div>
                     <div class="product-price">${c.sellPrice.toLocaleString()} د.ع</div>
-                    <small style="color:#667eea; font-weight:bold; font-size:11px;">📦 ${stock}</small>
+                    <small style="color:#F59E0B; font-weight:bold; font-size:11px;">📦 ${stock}</small>
                 </button>
             `}).join('');
         }
@@ -3796,7 +3978,7 @@
             const grid = document.getElementById('cardSellGrid');
             if (grid) {
                 if (cards.length === 0) {
-                    grid.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">هیچ کارتێک زیاد نەکراوە - لە خوارەوە کارتی نوێ زیادبکە</div>';
+                    grid.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text3);">هیچ کارتێک زیاد نەکراوە - لە خوارەوە کارتی نوێ زیادبکە</div>';
                 } else {
                     grid.innerHTML = cards.map(c => {
                         const stock = c.stock || 0;
@@ -3804,7 +3986,7 @@
                         <button class="product-btn" onclick="addCardToCart('${c.id}')">
                             <div class="product-name">💳 ${c.name}</div>
                             <div class="product-price">${c.sellPrice.toLocaleString()} د.ع</div>
-                            <small style="color:#667eea; font-weight:bold; font-size:11px;">📦 ${stock}</small>
+                            <small style="color:#F59E0B; font-weight:bold; font-size:11px;">📦 ${stock}</small>
                         </button>
                     `}).join('');
                 }
@@ -3814,7 +3996,7 @@
             const tbody = document.getElementById('cardsTableBody');
             if (tbody) {
                 if (cards.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">هیچ کارتێک زیاد نەکراوە</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text3);">هیچ کارتێک زیاد نەکراوە</td></tr>';
                 } else {
                     tbody.innerHTML = cards.map(c => {
                         const margin = c.sellPrice - c.costPrice;
@@ -4034,7 +4216,7 @@
                     <td>${dateStr}</td>
                     <td>${isTopup ? '➕ زیادکردنی ڕەسید' : '➖ ' + (h.note || 'فرۆشتنی کارت')}</td>
                     <td style="font-weight:bold; color:${isTopup ? '#28a745' : '#dc3545'};">${isTopup ? '+' : ''}${(h.amount||0).toLocaleString()} د.ع</td>
-                    <td style="font-weight:bold; color:#667eea;">${(h.balanceAfter||0).toLocaleString()} د.ع</td>
+                    <td style="font-weight:bold; color:#F59E0B;">${(h.balanceAfter||0).toLocaleString()} د.ع</td>
                 </tr>`;
             }).join('');
         }
@@ -4077,7 +4259,7 @@
             if (!tbody) return;
 
             if (periodSales.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">هیچ فرۆشتنێکی کارت نییە بۆ ئەم ماوەیە</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text3);">هیچ فرۆشتنێکی کارت نییە بۆ ئەم ماوەیە</td></tr>';
                 return;
             }
 
@@ -4135,7 +4317,7 @@
             if (!tbody) return;
 
             if (customers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">هیچ کڕیارێک نەدۆزرایەوە</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text3);">هیچ کڕیارێک نەدۆزرایەوە</td></tr>';
                 return;
             }
 
@@ -4416,7 +4598,7 @@
             }
 
             if (periodSales.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">هیچ فرۆشتنێک نییە بۆ ئەم ماوەیە</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text3);">هیچ فرۆشتنێک نییە بۆ ئەم ماوەیە</td></tr>';
             } else {
                 tbody.innerHTML = periodSales.slice(0, 50).map(s => {
                     const saleProfit = s.profit != null ? s.profit : (s.total - (s.totalCost || 0));
@@ -4449,7 +4631,7 @@
             const returnsTbody = document.getElementById('returnsTableBody');
             if (returnsTbody) {
                 if (periodReturns.length === 0) {
-                    returnsTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999;">هیچ گەڕاندنەوەیەک نییە بۆ ئەم ماوەیە</td></tr>';
+                    returnsTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text3);">هیچ گەڕاندنەوەیەک نییە بۆ ئەم ماوەیە</td></tr>';
                 } else {
                     returnsTbody.innerHTML = periodReturns.slice(0, 50).map(r => `
                         <tr class="${r.offlineSaved ? 'offline-row' : ''}">
