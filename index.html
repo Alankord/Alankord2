@@ -737,6 +737,15 @@
         .profit-positive { color: #28a745; font-weight: bold; }
         .profit-negative { color: #dc3545; font-weight: bold; }
 
+        .expiry-ok { color: #28a745; font-weight: bold; }
+        .expiry-soon { color: #e67e22; font-weight: bold; background: #fff3cd; padding: 2px 6px; border-radius: 8px; }
+        .expiry-expired { color: #dc3545; font-weight: bold; background: #f8d7da; padding: 2px 6px; border-radius: 8px; animation: expiredPulse 1.5s infinite; }
+        @keyframes expiredPulse {
+            0%, 100% { background: #f8d7da; }
+            50% { background: #f5c6cb; }
+        }
+        .table tr.row-expired { background: #fff0f0 !important; border-right: 4px solid #dc3545; }
+
         /* سیستەمی سێ کرین */
         .cart-tabs-bar {
             display: flex;
@@ -1253,6 +1262,13 @@
                             <small style="color:#888; font-size:12px;">ئەگەر بەتاڵ بهێڵیتەوە: نرخی کڕین × بڕی پاکێت</small>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📅 بەرواری بەسەرچوون (ئەگەر هەبێت):</label>
+                            <input type="date" id="productExpiry" class="form-control">
+                            <small style="color:#888; font-size:12px;">ئەگەر کاڵاکە بەسەرچوونی نەبێت بەتاڵ بهێڵەرەوە</small>
+                        </div>
+                    </div>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn btn-success" onclick="addProduct()" style="flex: 1;">💾 پاشەکەوت</button>
                         <button class="btn btn-danger" onclick="document.getElementById('addProductForm').style.display='none'" style="flex: 1;">❌ ڕەتکردنەوە</button>
@@ -1271,13 +1287,15 @@
                                 <th>بڕ لە کۆگا</th>
                                 <th>سوود/دانە</th>
                                 <th>کۆی بەهای کۆگا</th>
+                                <th>📅 بەسەرچوون</th>
+                                <th>🕐 گورانکاری</th>
                                 <th>دۆخ</th>
                                 <th>کردارەکان</th>
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
                             <tr>
-                                <td colspan="9" style="text-align: center; color: #999;">کاڵاکان باردەکرێن...</td>
+                                <td colspan="11" style="text-align: center; color: #999;">کاڵاکان باردەکرێن...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -2028,6 +2046,7 @@
 
         async function saveProduct(product) {
             // هەمیشە ڕاستەوخۆ localStorage نوێ بکەرەوە (ئۆنلاین و ئۆفلاین هەردووکیان)
+            product.updatedAt = new Date().toISOString();
             const products = JSON.parse(localStorage.getItem('products') || '[]');
             const index = products.findIndex(p => p.id === product.id);
             if (index >= 0) { products[index] = product; } else { products.push(product); }
@@ -3026,21 +3045,37 @@
             else filtered.sort((a, b) => a.name.localeCompare(b.name, 'ckb'));
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #999;">هیچ کاڵایەک نەدۆزرایەوە</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #999;">هیچ کاڵایەک نەدۆزرایەوە</td></tr>';
                 return;
             }
 
             tbody.innerHTML = filtered.map(p => {
                 const profitPerUnit = (p.price || 0) - (p.cost || 0);
                 const itemValue = (p.price || 0) * (p.quantity || 0);
-                const rowClass = p.quantity <= 0 ? 'row-out' : (p.quantity <= p.alert ? 'row-low' : '');
+                const today = new Date(); today.setHours(0,0,0,0);
+                const soon = new Date(today); soon.setDate(soon.getDate() + 30);
+                let expiryHtml = '<span style="color:#aaa;">---</span>';
+                let isExpired = false;
+                if (p.expiryDate) {
+                    const expDate = new Date(p.expiryDate + 'T00:00:00');
+                    const expStr = expDate.toLocaleDateString('ckb', {year:'numeric', month:'short', day:'numeric'});
+                    if (expDate < today) {
+                        expiryHtml = `<span class="expiry-expired">🔴 ${expStr}</span>`;
+                        isExpired = true;
+                    } else if (expDate <= soon) {
+                        expiryHtml = `<span class="expiry-soon">⚠️ ${expStr}</span>`;
+                    } else {
+                        expiryHtml = `<span class="expiry-ok">✅ ${expStr}</span>`;
+                    }
+                }
+                const rowClass = isExpired ? 'row-expired' : (p.quantity <= 0 ? 'row-out' : (p.quantity <= p.alert ? 'row-low' : ''));
                 const statusBadge = p.quantity <= 0
                     ? '<span class="badge badge-danger">تەواوبوو</span>'
                     : (p.quantity <= p.alert ? '<span class="badge badge-warning">کەمە</span>' : '<span class="badge badge-success">باشە</span>');
                 return `
                 <tr class="${rowClass}">
                     <td>${p.barcode}${(Array.isArray(p.extraBarcodes) && p.extraBarcodes.length) ? ` <span style="color:#667eea; font-size:11px;" title="${p.extraBarcodes.join(', ')}">(+${p.extraBarcodes.length})</span>` : ''}</td>
-                    <td>${p.name}${p.packageSize >= 2 ? ` <span style="background:#764ba2;color:white;border-radius:8px;padding:2px 6px;font-size:11px;">📦${p.packageSize}</span>` : ''}</td>
+                    <td>${p.name}${p.packageSize >= 2 ? ` <span style="background:#764ba2;color:white;border-radius:8px;padding:2px 6px;font-size:11px;">📦${p.packageSize}</span>` : ''}${isExpired ? ' <span style="color:#dc3545;font-weight:bold;font-size:11px;">⚠️ بەسەرچوو</span>' : ''}</td>
                     <td>${p.price.toLocaleString()}</td>
                     <td>${p.cost.toLocaleString()}</td>
                     <td>
@@ -3050,6 +3085,8 @@
                     </td>
                     <td class="${profitPerUnit >= 0 ? 'profit-positive' : 'profit-negative'}">${profitPerUnit.toLocaleString()}</td>
                     <td>${itemValue.toLocaleString()}</td>
+                    <td>${expiryHtml}</td>
+                    <td style="font-size:12px; color:#888; white-space:nowrap;" title="${p.updatedAt || ''}">${timeAgo(p.updatedAt)}</td>
                     <td>${statusBadge}</td>
                     <td>
                         <button class="btn btn-warning" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
@@ -3066,6 +3103,24 @@
                 </tr>
             `;
             }).join('');
+        }
+
+        function timeAgo(isoString) {
+            if (!isoString) return '—';
+            const now = Date.now();
+            const then = new Date(isoString).getTime();
+            const diff = Math.floor((now - then) / 1000); // seconds
+            if (diff < 60) return diff + ' چرکە پێش';
+            const mins = Math.floor(diff / 60);
+            if (mins < 60) return mins + ' خولەک پێش';
+            const hours = Math.floor(mins / 60);
+            if (hours < 24) return hours + ' کاتژمێر پێش';
+            const days = Math.floor(hours / 24);
+            if (days < 30) return days + ' ڕۆژ پێش';
+            const months = Math.floor(days / 30);
+            if (months < 12) return months + ' مانگ پێش';
+            const years = Math.floor(days / 365);
+            return years + ' ساڵ پێش';
         }
 
         function exportInventoryCSV() {
@@ -3106,6 +3161,7 @@
                 document.getElementById('productPackageSize').value = '';
                 document.getElementById('productPackagePrice').value = '';
                 document.getElementById('productPackageCost').value = '';
+                document.getElementById('productExpiry').value = '';
                 const row = document.getElementById('packagePriceRow');
                 if (row) row.style.display = 'none';
             }
@@ -3119,6 +3175,7 @@
             const quantity = parseFloat(document.getElementById('productQuantity')?.value) || 0;
             const alertLevel = parseFloat(document.getElementById('productAlert')?.value) || 5;
             const unit = document.getElementById('productUnit')?.value || 'دانە';
+            const expiryDate = document.getElementById('productExpiry')?.value || '';
 
             if (!name || !barcode || !price || !cost) {
                 showToast('تکایە هەموو خانە پێویستەکان پڕبکەرەوە!', 'error');
@@ -3160,7 +3217,8 @@
                 unit: unit,
                 packageSize: packageSize,
                 packagePrice: packagePrice,
-                packageCost: packageCost
+                packageCost: packageCost,
+                expiryDate: expiryDate || ''
             };
 
             await saveProduct(newProduct);
@@ -3196,6 +3254,8 @@
                 newPkgCost = prompt('نرخی کڕینی پاکێت (تێچوون، ئەگەر تایبەتی هەیە بنووسە، وەکوو نەبێت 0 بنووسە):', product.packageCost || 0);
             }
 
+            const newExpiry = prompt('📅 بەرواری بەسەرچوون (فۆرمات: YYYY-MM-DD، ئەگەر نییە بەتاڵ بهێڵەرەوە):', product.expiryDate || '');
+
             product.name = newName || product.name;
             product.price = parseFloat(newPrice) || product.price;
             product.cost = parseFloat(newCost) || product.cost;
@@ -3205,6 +3265,9 @@
                 product.packageSize = (!isNaN(pkg) && pkg >= 2) ? pkg : 0;
                 product.packagePrice = (newPkgPrice !== null && parseFloat(newPkgPrice) > 0) ? parseFloat(newPkgPrice) : 0;
                 product.packageCost = (newPkgCost !== null && parseFloat(newPkgCost) > 0) ? parseFloat(newPkgCost) : 0;
+            }
+            if (newExpiry !== null) {
+                product.expiryDate = newExpiry.trim();
             }
 
             await saveProduct(product);
