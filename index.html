@@ -1288,9 +1288,9 @@
                                 <th>سوود/دانە</th>
                                 <th>کۆی بەهای کۆگا</th>
                                 <th>📅 بەسەرچوون</th>
-                                <th>🕐 گورانکاری</th>
                                 <th>دۆخ</th>
                                 <th>کردارەکان</th>
+                                <th>🕐 گورانکاری</th>
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
@@ -3086,7 +3086,6 @@
                     <td class="${profitPerUnit >= 0 ? 'profit-positive' : 'profit-negative'}">${profitPerUnit.toLocaleString()}</td>
                     <td>${itemValue.toLocaleString()}</td>
                     <td>${expiryHtml}</td>
-                    <td style="font-size:12px; color:#888; white-space:nowrap;" title="${p.updatedAt || ''}">${timeAgo(p.updatedAt)}</td>
                     <td>${statusBadge}</td>
                     <td>
                         <button class="btn btn-warning" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
@@ -3100,6 +3099,7 @@
                         <button class="btn btn-success" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
                                 onclick="addStock('${p.id}')">+</button>
                     </td>
+                    <td style="font-size:12px; color:#888; white-space:nowrap;" title="${p.updatedAt || ''}">${timeAgo(p.updatedAt)}</td>
                 </tr>
             `;
             }).join('');
