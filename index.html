@@ -2051,9 +2051,7 @@
             showToast('🔄 ئینتەرنێت گەڕایەوە، sync دەستپێدەکات...', 'success');
             // یەکەم: پسوولەی ئۆفلاین بنێرە بۆ سێرڤەر
             await processSyncQueue();
-            // دووەم: ئێستا لە سێرڤەر بخوێنەوە - پسوولەی ئۆفلاین ئێستا لە سێرڤەر هەن
-            await syncSales();
-            await syncReturns();
+            // دووەم: تەنیا کاڵاکان و کڕیارەکان نوێبکەرەوە (فرۆشتن/گەڕاندنەوە پێویست نین)
             await syncProducts();
             await syncCustomers();
             updateConnectionStatus('online');
@@ -2179,7 +2177,8 @@
         async function handleScannedBarcode(barcode) {
             barcode = (barcode || '').trim();
             if (!barcode) return;
-            const products = await syncProducts();
+            // ڕاستەوخۆ لە localStorage بخوێنەوە — نەک Firebase — بۆ کەمکردنی reads
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.barcode === barcode || (Array.isArray(p.extraBarcodes) && p.extraBarcodes.includes(barcode)));
 
             const input = document.getElementById('barcodeInput');
@@ -2722,7 +2721,7 @@
         }
 
         async function displayProducts(filter = '') {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const grid = document.getElementById('productGrid');
             if (!grid) return;
             
@@ -2756,7 +2755,7 @@
         }
 
         async function addToCart(productId) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === productId);
 
             if (!product) {
@@ -2791,7 +2790,7 @@
 
         // فرۆشتنی پاکێت: بە نرخی تایبەتی پاکێت، یەک ئایتمی پاکێت زیاد دەکرێت
         async function addToCartPkg(productId, pkgSize) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === productId);
 
             if (!product) {
@@ -2839,7 +2838,7 @@
 
         // گۆڕانی ئایتمی دانەیی بۆ پاکێت لە سەبەتەکەدا
         async function switchToPkg(index, realProductId, pkgSize) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === realProductId);
             if (!product) return;
 
@@ -2868,7 +2867,7 @@
         // گۆڕانی ئایتمی پاکێت بۆ دانەیی لە سەبەتەکەدا
         async function switchToUnit(index) {
             const item = cart[index];
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === item._realProductId);
             if (!product) return;
 
@@ -2889,7 +2888,7 @@
         }
 
         async function updateQuantity(index, newQty) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === cart[index].productId);
 
             newQty = parseFloat(newQty);
@@ -3182,7 +3181,7 @@
 
         // ==================== بەشی کاڵاکان ====================
         async function loadProducts(searchTerm = '') {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const tbody = document.getElementById('productsTableBody');
             if (!tbody) return;
 
@@ -3306,7 +3305,8 @@
         }
 
         function exportInventoryCSV() {
-            syncProducts().then(products => {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            {
                 let csv = '\uFEFFبارکۆد,بارکۆدی زیادە,ناو,نرخی فرۆشتن,نرخی کڕین,بڕی کۆگا,سوود بۆ دانە,کۆی بەهای کۆگا,دۆخ\n';
                 products.forEach(p => {
                     const status = p.quantity <= 0 ? 'تەواوبوو' : (p.quantity <= p.alert ? 'کەمە' : 'باشە');
@@ -3319,7 +3319,7 @@
                 link.download = `کۆگا-${new Date().toISOString().split('T')[0]}.csv`;
                 link.click();
                 showToast('✅ فایلی کۆگا دەرهات');
-            });
+            }
         }
 
         // ==================== گۆڕینی نرخ بەکۆمەڵ بۆ هەموو کاڵاکان ====================
@@ -3364,7 +3364,7 @@
                 return;
             }
 
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const existing = products.find(p => p.barcode === barcode || (Array.isArray(p.extraBarcodes) && p.extraBarcodes.includes(barcode)));
 
             if (existing) {
@@ -3414,7 +3414,7 @@
         }
 
         async function editProduct(id) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === id);
             if (!product) return;
 
@@ -3459,7 +3459,7 @@
 
         // گۆڕینی خێرای نرخی تەنها یەک کاڵا (بێ پرسیارکردنی ناو و ئاستی ئاگادارکردنەوە)
         async function editProductPrice(id) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === id);
             if (!product) return;
 
@@ -3482,7 +3482,7 @@
 
         // بەڕێوەبردنی چەند بارکۆد بۆ یەک کاڵا (بۆ نموونە: کاڵایەک کە لەلایەن دوو فابریکا/دابینکەرەوە بە دوو بارکۆدی جیاواز هاتووە)
         async function manageExtraBarcodes(id) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === id);
             if (!product) return;
             if (!Array.isArray(product.extraBarcodes)) product.extraBarcodes = [];
@@ -3535,7 +3535,7 @@
         }
 
         async function addStock(id) {
-            const products = await syncProducts();
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === id);
             if (!product) return;
 
@@ -4305,7 +4305,7 @@
 
         // ==================== بەشی کڕیاران ====================
         async function loadCustomers() {
-            const customers = await syncCustomers();
+            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
             
             const select = document.getElementById('customerSelect');
             if (select) {
@@ -4384,7 +4384,7 @@
         }
 
         async function editCustomer(id) {
-            const customers = await syncCustomers();
+            const customers = JSON.parse(localStorage.getItem('customers') || '[]');
             const customer = customers.find(c => c.id === id);
             if (!customer) return;
 
