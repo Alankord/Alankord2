@@ -2157,8 +2157,8 @@
             showToast('🔄 ئینتەرنێت گەڕایەوە، sync دەستپێدەکات...', 'success');
             // یەکەم: پسوولەی ئۆفلاین بنێرە بۆ سێرڤەر
             await processSyncQueue();
-            // دووەم: تەنیا کاڵاکان و کڕیارەکان نوێبکەرەوە (فرۆشتن/گەڕاندنەوە پێویست نین)
-            await syncProducts();
+            // دووەم: تەنیا کاڵاکان و کڕیارەکان نوێبکەرەوە (forceServer بۆ دڵنیابوون)
+            await syncProducts(true);
             await syncCustomers();
             updateConnectionStatus('online');
             showToast('✅ sync تەواو بوو', 'success');
@@ -2312,9 +2312,16 @@
         }
 
         // ==================== Data Functions ====================
-        async function syncProducts() {
-            // ئەگەر ئۆفلاینین، ڕاستەوخۆ لە localStorage بخوێنەوە بەبێ چاوەڕێکردنی Firebase
+        // cache بۆ کەمکردنی reads — تەنیا هەر ٥ خولەک یەک جار لە server بخوێنەوە
+        let _productSyncLastTime = 0;
+        const PRODUCT_SYNC_INTERVAL = 5 * 60 * 1000; // 5 خولەک
+
+        async function syncProducts(forceServer = false) {
             if (!navigator.onLine) {
+                return JSON.parse(localStorage.getItem('products') || '[]');
+            }
+            const now = Date.now();
+            if (!forceServer && (now - _productSyncLastTime) < PRODUCT_SYNC_INTERVAL) {
                 return JSON.parse(localStorage.getItem('products') || '[]');
             }
             try {
@@ -2324,6 +2331,7 @@
                     products.push({ id: doc.id, ...doc.data() });
                 });
                 localStorage.setItem('products', JSON.stringify(products));
+                _productSyncLastTime = Date.now();
                 return products;
             } catch (error) {
                 console.error('Error syncing products:', error);
@@ -2332,11 +2340,11 @@
         }
 
         async function saveProduct(product) {
-            // هەمیشە ڕاستەوخۆ localStorage نوێ بکەرەوە (ئۆنلاین و ئۆفلاین هەردووکیان)
             product.updatedAt = new Date().toISOString();
             const products = JSON.parse(localStorage.getItem('products') || '[]');
             const index = products.findIndex(p => p.id === product.id);
-            if (index >= 0) { products[index] = product; } else { products.push(product); }
+            const isExisting = index >= 0;
+            if (isExisting) { products[index] = product; } else { products.push(product); }
             localStorage.setItem('products', JSON.stringify(products));
 
             if (!navigator.onLine) {
@@ -2344,7 +2352,13 @@
                 return false;
             }
             try {
-                await db.collection('products').doc(product.id.toString()).set(product);
+                const docRef = db.collection('products').doc(product.id.toString());
+                if (isExisting) {
+                    // update بەجیاتی set — کەمتر داتا دەنووسێت
+                    await docRef.set(product);
+                } else {
+                    await docRef.set(product);
+                }
                 return true;
             } catch (error) {
                 console.error('Error saving product:', error);
@@ -2660,8 +2674,8 @@
                 // ئۆفلاین queue بنێرە
                 await processSyncQueue();
 
-                // داتاکان نوێبکەرەوە
-                await syncProducts();
+                // داتاکان نوێبکەرەوە (forceServer=true بۆ دڵنیابوون لە نوێترین داتا)
+                await syncProducts(true);
                 await syncCustomers();
 
                 // بەشی چالاک نوێبکەرەوە
@@ -2751,8 +2765,8 @@
             showToast('✅ دووبارەکان سڕانەوە - ' + sales.length + ' فرۆشتن ماندووە', 'success');
         }
 
-        // Auto-sync every 30 seconds
-        setInterval(processSyncQueue, 30000);
+        // Auto-sync هەر ٥ خولەک (بەجیاتی ٣٠ چرکە — کەمکردنی reads/writes)
+        setInterval(processSyncQueue, 5 * 60 * 1000);
 
         // ==================== Initialize with Sample Data ====================
         async function initializeData() {
@@ -3207,16 +3221,23 @@
             const paymentMethod = document.getElementById('paymentMethod')?.value || 'cash';
             // invoiceNo already captured above
 
-            // Update product quantities (تەنیا کاڵا - کارت بڕی کۆگای نییە)
-            for (const item of goodsItems) {
-                // پاکێتەکان: بەکارهێنانی _realProductId و _pkgSize بۆ کەمکردنەوەی کۆگای ڕاستەقینە
-                const realId = item._realProductId || item.productId;
-                const product = products.find(p => p.id === realId);
-                if (product) {
-                    const deduct = item._pkgSize ? (item.quantity * item._pkgSize) : item.quantity;
-                    product.quantity -= deduct;
-                    await saveProduct(product);
+            // Update product quantities — localStorage ئەوەل، queue دواتر بۆ Firebase
+            {
+                const updatedProducts = JSON.parse(localStorage.getItem('products') || '[]');
+                for (const item of goodsItems) {
+                    const realId = item._realProductId || item.productId;
+                    const product = products.find(p => p.id === realId);
+                    if (product) {
+                        const deduct = item._pkgSize ? (item.quantity * item._pkgSize) : item.quantity;
+                        product.quantity -= deduct;
+                        product.updatedAt = new Date().toISOString();
+                        const idx = updatedProducts.findIndex(p => p.id === product.id);
+                        if (idx >= 0) updatedProducts[idx] = product;
+                        // هەمیشە بیخە queue — سبەی کاتێ quota ری‌ست بوو دەچێت Firebase
+                        queueForSync('product', product);
+                    }
                 }
+                localStorage.setItem('products', JSON.stringify(updatedProducts));
             }
 
             // Get customer info
@@ -3238,7 +3259,16 @@
                 createdAt: new Date().toISOString()
             };
 
-            await saveSale(sale);
+            // هەمیشە localStorage و queue ئەوەل — Firebase دواتر کاتێ quota ری‌ست بوو
+            sale.offlineSaved = true;
+            sale.localId = sale.localId || ('local-' + Date.now());
+            const existingQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
+            const alreadyQueued = existingQueue.find(q => q.type === 'sale' && q.data.invoiceNo === sale.invoiceNo);
+            if (!alreadyQueued) queueForSync('sale', sale);
+            const _sales = JSON.parse(localStorage.getItem('sales') || '[]');
+            const _dupIdx = _sales.findIndex(s => s.invoiceNo === sale.invoiceNo);
+            if (_dupIdx < 0) _sales.unshift(sale); else _sales[_dupIdx] = sale;
+            localStorage.setItem('sales', JSON.stringify(_sales));
 
             // تۆمارکردنی فرۆشتنی کارت بە جیایی (بۆ ئامار و ڕاپۆرتی تایبەتی تابی "کارت")
             for (const item of cardItems) {
