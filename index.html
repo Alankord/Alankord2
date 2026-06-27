@@ -2798,16 +2798,25 @@
             const grid = document.getElementById('productGrid');
             if (!grid) return;
             
-            const searchTerm = filter.toLowerCase();
-            
-            const filtered = products.filter(p => 
-                p.name.toLowerCase().includes(searchTerm) || 
-                p.barcode.includes(searchTerm) ||
-                (Array.isArray(p.extraBarcodes) && p.extraBarcodes.some(b => b.includes(searchTerm)))
-            );
+            const searchTerm = filter.toLowerCase().trim();
+
+            let filtered;
+            if (searchTerm === '') {
+                // هیچ گەران نییە: تەنیا کاڵا دیارکراوەکان (⭐) پیشان بدە
+                filtered = products.filter(p => p.quickAccess === true);
+            } else {
+                // گەران هەیە: بەسەر هەموو کاڵاکانەوە بگەرێ، تەنانەت ئەو کاڵایانەی ⭐ نیە
+                filtered = products.filter(p => 
+                    p.name.toLowerCase().includes(searchTerm) || 
+                    p.barcode.includes(searchTerm) ||
+                    (Array.isArray(p.extraBarcodes) && p.extraBarcodes.some(b => b.includes(searchTerm)))
+                );
+            }
 
             if (filtered.length === 0) {
-                grid.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text3);">هیچ کاڵایەک نەدۆزرایەوە</div>';
+                grid.innerHTML = searchTerm === ''
+                    ? '<div style="text-align: center; padding: 20px; color: var(--text3);">هیچ کاڵایەکی دیارکراو نییە.<br>بڕۆ بۆ بەشی "کاڵاکان" و ⭐ دیاریبکە بۆ ئەو کاڵایانەی دەتەوێت لێرە دەربکەون، یاخود گەرانی کاڵا بکە.</div>'
+                    : '<div style="text-align: center; padding: 20px; color: var(--text3);">هیچ کاڵایەک نەدۆزرایەوە</div>';
                 return;
             }
 
@@ -3016,7 +3025,7 @@
                     }
 
                     return `
-                        <tr style="${isPkg ? 'background:#f3effe;' : ''}">
+                        <tr style="${isPkg ? 'background: var(--purple-dim); border-right: 3px solid var(--purple);' : ''}">
                             <td>
                                 ${item.name}
                                 <small style="color:${isPkg ? '#8B5CF6' : '#F59E0B'};">(${unitLabel})</small>
@@ -3329,7 +3338,7 @@
                 return `
                 <tr class="${rowClass}">
                     <td>${p.barcode}${(Array.isArray(p.extraBarcodes) && p.extraBarcodes.length) ? ` <span style="color:#F59E0B; font-size:11px;" title="${p.extraBarcodes.join(', ')}">(+${p.extraBarcodes.length})</span>` : ''}</td>
-                    <td>${p.name}${p.packageSize >= 2 ? ` <span style="background:#8B5CF6;color:var(--text);border-radius:8px;padding:2px 6px;font-size:11px;">📦${p.packageSize}</span>` : ''}${isExpired ? ' <span style="color:#dc3545;font-weight:bold;font-size:11px;">⚠️ بەسەرچوو</span>' : ''}</td>
+                    <td>${p.quickAccess ? '⭐ ' : ''}${p.name}${p.packageSize >= 2 ? ` <span style="background:#8B5CF6;color:var(--text);border-radius:8px;padding:2px 6px;font-size:11px;">📦${p.packageSize}</span>` : ''}${isExpired ? ' <span style="color:#dc3545;font-weight:bold;font-size:11px;">⚠️ بەسەرچوو</span>' : ''}</td>
                     <td>${p.price.toLocaleString()}</td>
                     <td>${p.cost.toLocaleString()}</td>
                     <td>
@@ -3342,6 +3351,8 @@
                     <td>${expiryHtml}</td>
                     <td>${statusBadge}</td>
                     <td>
+                        <button class="btn ${p.quickAccess ? 'btn-warning' : ''}" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px; ${p.quickAccess ? '' : 'background:var(--surface3); color:var(--text2);'}" 
+                                onclick="toggleQuickAccess('${p.id}')" title="${p.quickAccess ? 'لابردن لە لیستی فرۆشتنی سەرەکی' : 'زیادکردن بۆ لیستی فرۆشتنی سەرەکی'}">${p.quickAccess ? '⭐' : '☆'}</button>
                         <button class="btn btn-warning" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
                                 onclick="editProductPrice('${p.id}')">💲</button>
                         <button class="btn btn-info" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
@@ -3528,6 +3539,22 @@
             await saveProduct(product);
             await loadProducts();
             await displayProducts();
+        }
+
+        // دیاریکردن/لابردنی کاڵا لە لیستی فرۆشتنی سەرەکی (⭐) - تەنیا کاڵای ⭐کراو
+        // بەبێ گەران لە بەشی فرۆشتندا دەردەکەوێت. گەران هەمیشە بەسەر هەموو کاڵاکانەوەیە.
+        async function toggleQuickAccess(id) {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            product.quickAccess = !product.quickAccess;
+            await saveProduct(product);
+            await loadProducts(document.getElementById('productsSearchBox')?.value || '');
+            await displayProducts();
+            showToast(product.quickAccess
+                ? `⭐ "${product.name}" زیادکرا بۆ لیستی فرۆشتنی سەرەکی`
+                : `☆ "${product.name}" لابرا لە لیستی فرۆشتنی سەرەکی`);
         }
 
         // گۆڕینی خێرای نرخی تەنها یەک کاڵا (بێ پرسیارکردنی ناو و ئاستی ئاگادارکردنەوە)
