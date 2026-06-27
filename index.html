@@ -695,10 +695,17 @@
             font-size: 13px;
             font-weight: 600;
             font-family: var(--font-body);
-            transition: all 0.2s;
+            transition: background 0.3s, color 0.3s;
+            min-width: 130px;
+            text-align: center;
         }
 
-        .sync-btn:hover { background: var(--green); color: #000; }
+        .sync-btn:hover:not(:disabled) { background: var(--green); color: #000; }
+
+        .sync-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
 
         /* ===== CAMERA BTN ===== */
         .camera-btn {
@@ -2532,13 +2539,79 @@
             updateConnectionStatus(newQueue.length === 0 ? 'online' : 'offline');
         }
 
-        function manualSync() {
-            processSyncQueue().then(() => {
-                loadReports();
-                loadProducts();
-                loadCustomers();
-                alert('✅ هاوکاتکردن تەواو بوو!');
-            });
+        async function manualSync() {
+            const syncBtn = document.querySelector('.sync-btn');
+            if (syncBtn) {
+                syncBtn.disabled = true;
+                syncBtn.textContent = '⏳ هاوکاتکردن...';
+            }
+            updateConnectionStatus('syncing');
+
+            if (!navigator.onLine) {
+                showToast('📵 ئینتەرنێت نییە - هاوکاتکردن نەتوانرا', 'error');
+                updateConnectionStatus('offline');
+                if (syncBtn) {
+                    syncBtn.disabled = false;
+                    syncBtn.textContent = '🔄 هاوکاتکردن';
+                }
+                return;
+            }
+
+            try {
+                // ئۆفلاین queue بنێرە
+                await processSyncQueue();
+
+                // داتاکان نوێبکەرەوە
+                await syncProducts();
+                await syncCustomers();
+
+                // بەشی چالاک نوێبکەرەوە
+                const reportsSection = document.getElementById('reportsSection');
+                if (reportsSection && reportsSection.classList.contains('active')) await loadReports();
+                const productsSection = document.getElementById('productsSection');
+                if (productsSection && productsSection.classList.contains('active')) await loadProducts();
+                const customersSection = document.getElementById('customersSection');
+                if (customersSection && customersSection.classList.contains('active')) await loadCustomers();
+                const cardsSection = document.getElementById('cardsSection');
+                if (cardsSection && cardsSection.classList.contains('active')) await loadCardReports();
+
+                // بررسی قێوی مایەوە
+                const remaining = JSON.parse(localStorage.getItem('syncQueue') || '[]');
+                if (remaining.length === 0) {
+                    updateConnectionStatus('online');
+                    showSyncResult(true, 'هاوکاتکردن تەواو بوو ✅');
+                } else {
+                    updateConnectionStatus('offline');
+                    showSyncResult(false, `${remaining.length} داتا نەتوانران بنێردرێن ❌`);
+                }
+            } catch (err) {
+                console.error('Manual sync error:', err);
+                updateConnectionStatus('offline');
+                showSyncResult(false, 'هاوکاتکردن سەرنەکەوت ❌');
+            } finally {
+                if (syncBtn) {
+                    syncBtn.disabled = false;
+                    syncBtn.textContent = '🔄 هاوکاتکردن';
+                }
+            }
+        }
+
+        function showSyncResult(success, message) {
+            // Toast نیشان بدە
+            showToast(message, success ? 'success' : 'error');
+
+            // دوگمەکە کوتکوتبکە بۆ ئاگادارکردنەوە
+            const syncBtn = document.querySelector('.sync-btn');
+            if (syncBtn) {
+                syncBtn.style.background = success ? 'var(--green)' : 'var(--red)';
+                syncBtn.style.color = success ? '#000' : '#fff';
+                syncBtn.textContent = success ? '✅ جوون' : '❌ سەرنەکەوت';
+                setTimeout(() => {
+                    syncBtn.style.background = '';
+                    syncBtn.style.color = '';
+                    syncBtn.textContent = '🔄 هاوکاتکردن';
+                }, 3000);
+            }
         }
 
         // پاککردنەوەی دووبارەکان لە localStorage
