@@ -874,6 +874,102 @@
 
         .export-btn:hover { background: #0891B2; color: var(--text); }
 
+        /* ===== IMPORT BTN ===== */
+        .import-btn {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(16,185,129,0.35);
+            padding: 9px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: var(--font-body);
+            transition: all 0.2s;
+        }
+        .import-btn:hover { background: var(--green); color: #000; }
+
+        /* ===== CSV IMPORT MODAL ===== */
+        .csv-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .csv-modal-overlay.active { display: flex; }
+        .csv-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 28px;
+            max-width: 520px;
+            width: 92%;
+            box-shadow: var(--shadow-lg);
+        }
+        .csv-modal h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--amber);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .csv-drop-zone {
+            border: 2px dashed var(--border2);
+            border-radius: var(--radius-lg);
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+            background: var(--surface2);
+        }
+        .csv-drop-zone:hover, .csv-drop-zone.drag-over {
+            border-color: var(--green);
+            background: var(--green-dim);
+        }
+        .csv-drop-zone p { color: var(--text2); font-size: 14px; margin-top: 8px; }
+        .csv-drop-zone .drop-icon { font-size: 36px; }
+        .csv-preview-area {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            font-size: 12px;
+            color: var(--text2);
+            margin-bottom: 14px;
+            display: none;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .csv-modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .csv-modal-footer button {
+            padding: 9px 22px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--font-body);
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .csv-btn-cancel { background: var(--surface3); color: var(--text2); border: 1px solid var(--border) !important; }
+        .csv-btn-cancel:hover { border-color: var(--red) !important; color: var(--red); }
+        .csv-btn-import { background: var(--green); color: #000; }
+        .csv-btn-import:hover { background: #059669; color: white; }
+        .csv-btn-import:disabled { opacity: 0.5; cursor: not-allowed; }
+
         /* ===== TABLE ROW STATES ===== */
         .table tr.row-out td { color: var(--red) !important; }
         .table tr.row-low td { color: var(--yellow) !important; }
@@ -1381,6 +1477,7 @@
                         <option value="value-desc">بەها: زۆرترین یەکەم</option>
                     </select>
                     <button class="export-btn" onclick="exportInventoryCSV()">⬇️ دەرهێنانی CSV</button>
+                    <button class="import-btn" onclick="openImportModal('products')">⬆️ کرنا تێدا CSV</button>
 
                 </div>
 
@@ -1561,6 +1658,7 @@
                 <input type="date" id="cardReportToDate" class="form-control" style="width: auto; display: none;">
                 <button class="btn btn-info" style="width: auto; margin: 0;" onclick="loadCardReports()">🔄 نوێکردنەوە</button>
                 <button class="export-btn" onclick="exportCardSalesCSV()">⬇️ دەرهێنانی CSV</button>
+                <button class="import-btn" onclick="openImportModal('cards')">⬆️ کرنا تێدا CSV</button>
             </div>
 
             <!-- ئامارەکانی کارت (سەربەخۆ لە ڕاپۆرتی کاڵا) -->
@@ -1750,6 +1848,7 @@
                 <input type="date" id="reportToDate" class="form-control" style="width: auto; display: none;">
                 <button class="btn btn-info" style="width: auto; margin: 0;" onclick="loadReports()">🔄 نوێکردنەوە</button>
                 <button class="export-btn" onclick="exportSalesCSV()">⬇️ دەرهێنانی CSV</button>
+                <button class="import-btn" onclick="openImportModal('sales')">⬆️ کرنا تێدا CSV</button>
             </div>
 
             <div class="stats-grid">
@@ -5185,7 +5284,232 @@
             }
         }
 
-        window.onload = init;
+        // ==================== کرنا تێدا CSV ====================
+
+        let csvImportType = null;
+        let csvParsedRows = [];
+
+        const CSV_HINTS = {
+            products: '📋 فۆرماتی داخراو: بارکۆد، بارکۆدی زیادە، ناو، نرخی فرۆشتن، نرخی کڕین، بڕی کۆگا',
+            cards:    '📋 فۆرماتی داخراو: بەروار، ناوی کارت، دانە، کۆی ڕەسید، کۆی فرۆشتن، سوود',
+            sales:    '📋 فۆرماتی داخراو: ژمارەی پسوولە، بەروار، کڕیار، کۆی گشتی، داشکاندن، تێچوون، سوود، شێوازی پارەدان'
+        };
+
+        function openImportModal(type) {
+            csvImportType = type;
+            csvParsedRows = [];
+            document.getElementById('csvFileInput').value = '';
+            document.getElementById('csvFileNameLabel').textContent = '';
+            document.getElementById('csvPreviewArea').style.display = 'none';
+            document.getElementById('csvPreviewArea').textContent = '';
+            document.getElementById('csvImportBtn').disabled = true;
+            document.getElementById('csvFormatHint').textContent = CSV_HINTS[type] || '';
+            const titles = { products: '⬆️ کرنا تێدا CSV — کاڵاکان', cards: '⬆️ کرنا تێدا CSV — کارتەکان', sales: '⬆️ کرنا تێدا CSV — فرۆشتنەکان' };
+            document.getElementById('csvModalTitle').textContent = titles[type] || '⬆️ کرنا تێدا CSV';
+            document.getElementById('csvImportModal').classList.add('active');
+
+            const dz = document.getElementById('csvDropZone');
+            dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag-over'); };
+            dz.ondragleave = () => dz.classList.remove('drag-over');
+            dz.ondrop = e => {
+                e.preventDefault();
+                dz.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file) processCSVFile(file);
+            };
+        }
+
+        function closeImportModal() {
+            document.getElementById('csvImportModal').classList.remove('active');
+            csvImportType = null;
+            csvParsedRows = [];
+        }
+
+        function handleCSVFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) processCSVFile(file);
+        }
+
+        function processCSVFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showToast('⚠️ تەنیا فایلی .csv قبووڵ دەکرێت');
+                return;
+            }
+            document.getElementById('csvFileNameLabel').textContent = '📄 ' + file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let text = e.target.result;
+                if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+                csvParsedRows = parseCSV(text);
+                const preview = document.getElementById('csvPreviewArea');
+                if (csvParsedRows.length <= 1) {
+                    showToast('⚠️ فایلەکە بەتاڵە یان فۆرمات هەڵەیە');
+                    preview.style.display = 'none';
+                    document.getElementById('csvImportBtn').disabled = true;
+                    return;
+                }
+                const previewRows = csvParsedRows.slice(0, 6);
+                preview.textContent = previewRows.map(r => r.join(' | ')).join('\n');
+                preview.style.display = 'block';
+                document.getElementById('csvImportBtn').disabled = false;
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function parseCSV(text) {
+            const rows = [];
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            for (const line of lines) {
+                const cols = [];
+                let cur = '';
+                let inQ = false;
+                for (let i = 0; i < line.length; i++) {
+                    const c = line[i];
+                    if (c === '"') { inQ = !inQ; }
+                    else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+                    else { cur += c; }
+                }
+                cols.push(cur.trim());
+                rows.push(cols);
+            }
+            return rows;
+        }
+
+        async function doCSVImport() {
+            if (!csvParsedRows.length || !csvImportType) return;
+            const btn = document.getElementById('csvImportBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ چاوەڕێبە...';
+            const dataRows = csvParsedRows.slice(1);
+            if (csvImportType === 'products') await importProductsCSV(dataRows);
+            else if (csvImportType === 'cards') await importCardsCSV(dataRows);
+            else if (csvImportType === 'sales') await importSalesCSV(dataRows);
+            btn.textContent = '✅ کرنا تێدا';
+            setTimeout(() => closeImportModal(), 800);
+        }
+
+        async function importProductsCSV(rows) {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            let added = 0, updated = 0, skipped = 0;
+            for (const cols of rows) {
+                if (cols.length < 3) continue;
+                const barcode  = (cols[0] || '').trim();
+                const extra    = (cols[1] || '').trim();
+                const name     = (cols[2] || '').trim();
+                const price    = parseFloat(cols[3]) || 0;
+                const cost     = parseFloat(cols[4]) || 0;
+                const quantity = parseFloat(cols[5]) || 0;
+                if (!name) continue;
+                const existIdx = barcode ? products.findIndex(p => p.barcode === barcode) : -1;
+                if (existIdx !== -1) {
+                    const choice = confirm(`⚠️ کاڵای "${name}"\nبارکۆد: ${barcode}\n\nپێشتر هەیە — نوێبکەیتەوە؟\n\nبەلێ = نوێبکەرەوە\nنەخێر = بەجێبهێڵیت`);
+                    if (choice) {
+                        const old = products[existIdx];
+                        products[existIdx] = { ...old, name,
+                            price: price || old.price,
+                            cost:  cost  || old.cost,
+                            quantity: quantity !== 0 ? quantity : old.quantity,
+                            extraBarcodes: extra ? extra.split('/').map(x=>x.trim()).filter(Boolean) : old.extraBarcodes
+                        };
+                        updated++;
+                    } else { skipped++; }
+                } else {
+                    products.push({ id: Date.now()+Math.random(), barcode: barcode||String(Date.now()), name, price, cost, quantity, alert:5,
+                        extraBarcodes: extra ? extra.split('/').map(x=>x.trim()).filter(Boolean) : [],
+                        createdAt: new Date().toISOString(), synced: false });
+                    added++;
+                }
+            }
+            localStorage.setItem('products', JSON.stringify(products));
+            showToast(`✅ کاڵاکان: ${added} نوێ، ${updated} نوێکراوەتەوە، ${skipped} بەجێهێڵراو`);
+            await loadProducts();
+        }
+
+        async function importCardsCSV(rows) {
+            let cardSales = JSON.parse(localStorage.getItem('cardSales') || '[]');
+            let added = 0, skipped = 0;
+            for (const cols of rows) {
+                if (cols.length < 2) continue;
+                const createdAt = (cols[0]||'').trim();
+                const cardName  = (cols[1]||'').trim();
+                const quantity  = parseFloat(cols[2])||0;
+                const totalCost = parseFloat(cols[3])||0;
+                const totalSell = parseFloat(cols[4])||0;
+                const profit    = parseFloat(cols[5])||0;
+                if (!cardName) continue;
+                const exists = cardSales.find(s => s.cardName===cardName && s.createdAt===createdAt);
+                if (exists) {
+                    const choice = confirm(`⚠️ تۆماری کارت "${cardName}"\nبەروار: ${createdAt}\n\nپێشتر هەیە — نوێبکەیتەوە؟\n\nبەلێ = نوێبکەرەوە\nنەخێر = بەجێبهێڵیت`);
+                    if (choice) { Object.assign(exists, {quantity,totalCost,totalSell,profit}); added++; }
+                    else { skipped++; }
+                } else {
+                    cardSales.push({ id:Date.now()+Math.random(), cardName, quantity, totalCost, totalSell, profit,
+                        createdAt: createdAt||new Date().toISOString(), synced:false });
+                    added++;
+                }
+            }
+            localStorage.setItem('cardSales', JSON.stringify(cardSales));
+            showToast(`✅ کارتەکان: ${added} زیادکرا، ${skipped} بەجێهێڵراو`);
+            await loadCardReports();
+        }
+
+        async function importSalesCSV(rows) {
+            let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+            let added = 0, skipped = 0;
+            for (const cols of rows) {
+                if (cols.length < 4) continue;
+                const invoiceNo    = (cols[0]||'').trim();
+                const createdAt    = (cols[1]||'').trim();
+                const customerName = (cols[2]||'').trim();
+                const total        = parseFloat(cols[3])||0;
+                const discount     = parseFloat(cols[4])||0;
+                const totalCost    = parseFloat(cols[5])||0;
+                const profit       = parseFloat(cols[6])||0;
+                const paymentMethod= (cols[7]||'cash').trim();
+                if (!invoiceNo) continue;
+                const existIdx = sales.findIndex(s => s.invoiceNo===invoiceNo);
+                if (existIdx !== -1) {
+                    const choice = confirm(`⚠️ پسوولەی ژمارە "${invoiceNo}" پێشتر هەیە — نوێبکەیتەوە؟\n\nبەلێ = نوێبکەرەوە\nنەخێر = بەجێبهێڵیت`);
+                    if (choice) {
+                        const old = sales[existIdx];
+                        sales[existIdx] = { ...old, customerName, total, discount, totalCost, profit, paymentMethod,
+                            createdAt: createdAt||old.createdAt };
+                        added++;
+                    } else { skipped++; }
+                } else {
+                    sales.push({ id:Date.now()+Math.random(), invoiceNo, customerName, total, discount, totalCost, profit,
+                        paymentMethod, items:[], createdAt: createdAt||new Date().toISOString(), synced:false });
+                    added++;
+                }
+            }
+            localStorage.setItem('sales', JSON.stringify(sales));
+            showToast(`✅ فرۆشتنەکان: ${added} زیادکرا، ${skipped} بەجێهێڵراو`);
+            await loadReports();
+        }
+
     </script>
+
+    <!-- ==================== مۆداڵی کرنا تێدا CSV ==================== -->
+    <div id="csvImportModal" class="csv-modal-overlay">
+        <div class="csv-modal">
+            <h3 id="csvModalTitle">⬆️ کرنا تێدا CSV</h3>
+
+            <div class="csv-drop-zone" id="csvDropZone" onclick="document.getElementById('csvFileInput').click()">
+                <div class="drop-icon">📂</div>
+                <p>کلیک بکە یان فایل بخە ئێرە</p>
+                <p id="csvFileNameLabel" style="color: var(--amber); margin-top:6px; font-weight:700;"></p>
+            </div>
+            <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="handleCSVFileSelect(event)">
+
+            <div class="csv-preview-area" id="csvPreviewArea"></div>
+
+            <div style="margin-bottom:14px; font-size:13px; color: var(--text3);" id="csvFormatHint"></div>
+
+            <div class="csv-modal-footer">
+                <button class="csv-btn-cancel" onclick="closeImportModal()">❌ داخستن</button>
+                <button class="csv-btn-import" id="csvImportBtn" onclick="doCSVImport()" disabled>✅ کرنا تێدا</button>
+            </div>
+        </div>
+    </div>
+
 </body>
-</html>
