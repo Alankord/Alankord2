@@ -2983,7 +2983,7 @@
             if (existingItem) {
                 existingItem.quantity++;
             } else {
-                cart.push({
+                cart.unshift({
                     productId: product.id,
                     name: product.name,
                     price: product.price,
@@ -3023,7 +3023,7 @@
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
-                cart.push({
+                cart.unshift({
                     productId: pkgCartKey,
                     name: product.name + ` 📦(${pkgSize}دانە)`,
                     price: pkgSellPrice,
@@ -4158,7 +4158,7 @@
             if (existingItem) {
                 existingItem.quantity++;
             } else {
-                cart.push({
+                cart.unshift({
                     productId: cardCartKey,
                     name: '💳 ' + card.name,
                     cardName: card.name,
