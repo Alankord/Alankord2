@@ -2672,8 +2672,42 @@
             updateConnectionStatus(newQueue.length === 0 ? 'online' : 'offline');
         }
 
+        function updateSyncBtnLabel() {
+            const syncBtn = document.querySelector('.sync-btn');
+            if (!syncBtn) return;
+            const lastSync = localStorage.getItem('lastSyncTime');
+            if (!lastSync) { syncBtn.title = 'هەرگیز هاوکات نەکراوە'; return; }
+            const lastDate = new Date(lastSync);
+            const now = new Date();
+            const isToday = lastDate.toDateString() === now.toDateString();
+            const timeStr = lastDate.toLocaleTimeString('ckb', { hour: '2-digit', minute: '2-digit' });
+            if (isToday) {
+                syncBtn.title = `✅ ئەمرۆ هاوکات کرا — کاتژمێر ${timeStr}`;
+                // نیشانەی ئەمرۆ هاوکاتکراوە لە دوگمە
+                syncBtn.setAttribute('data-today', 'yes');
+                syncBtn.style.borderColor = 'rgba(16,185,129,0.6)';
+            } else {
+                const dateStr = lastDate.toLocaleDateString('ckb');
+                syncBtn.title = `دوایین هاوکاتکردن: ${dateStr} — ${timeStr}`;
+                syncBtn.removeAttribute('data-today');
+                syncBtn.style.borderColor = '';
+            }
+        }
+
         async function manualSync() {
             const syncBtn = document.querySelector('.sync-btn');
+
+            // ئاگادارکردنەوە ئەگەر ئەمرۆ پێشتر هاوکات کراوە
+            const lastSync = localStorage.getItem('lastSyncTime');
+            if (lastSync) {
+                const lastDate = new Date(lastSync);
+                const isToday = lastDate.toDateString() === new Date().toDateString();
+                if (isToday) {
+                    const timeStr = lastDate.toLocaleTimeString('ckb', { hour: '2-digit', minute: '2-digit' });
+                    showToast(`ئەمرۆ کاتژمێر ${timeStr} هاوکات کراوە ✅`, 'success');
+                }
+            }
+
             if (syncBtn) {
                 syncBtn.disabled = true;
                 syncBtn.textContent = '⏳ هاوکاتکردن...';
@@ -2711,8 +2745,10 @@
                 // بررسی قێوی مایەوە
                 const remaining = JSON.parse(localStorage.getItem('syncQueue') || '[]');
                 if (remaining.length === 0) {
+                    localStorage.setItem('lastSyncTime', new Date().toISOString());
                     updateConnectionStatus('online');
                     showSyncResult(true, 'هاوکاتکردن تەواو بوو ✅');
+                    updateSyncBtnLabel();
                 } else {
                     updateConnectionStatus('offline');
                     showSyncResult(false, `${remaining.length} داتا نەتوانران بنێردرێن ❌`);
@@ -5298,6 +5334,7 @@
                 }, 300);
 
                 updateConnectionStatus('online');
+                updateSyncBtnLabel();
                 setInterval(updateDateTime, 1000);
                 console.log('POS system started successfully');
             } catch (error) {
