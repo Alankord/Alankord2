@@ -2225,14 +2225,71 @@
         function playBeep(success = true) {
             try {
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                if (success) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = 1000;
+                    gain.gain.value = 0.15;
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.12);
+                } else {
+                    // کاڵا نەدۆزرایەوە: دوو بیب بەهێز و درێژتر، بۆ ئەوەی بەرچاوتر و جیاواز بێت لە دەنگی سەرکەوتن
+                    const now = audioCtx.currentTime;
+                    [0, 0.2].forEach(offset => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.type = 'square';
+                        osc.frequency.value = 280;
+                        gain.gain.value = 0.25;
+                        osc.start(now + offset);
+                        osc.stop(now + offset + 0.16);
+                    });
+                }
+            } catch (e) { /* بێدەنگ */ }
+        }
+
+        // دەنگی تەواوبووی فرۆشتن بە سەرکەوتوویی — دوو تۆنی بەرز وخۆش وەکوو "چینگ"
+        function playSaleSuccessSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
+                [880, 1320].forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.value = 0.18;
+                    const start = now + i * 0.1;
+                    osc.start(start);
+                    osc.stop(start + 0.15);
+                });
+            } catch (e) { /* بێدەنگ */ }
+        }
+
+        // دەنگی هەڵە لە تۆمارکردنی فرۆشتن — تۆنێکی نزم و درێژ، جیاواز لە هەموو دەنگەکانی تر
+        function playSaleErrorSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const now = audioCtx.currentTime;
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                osc.frequency.value = success ? 1000 : 300;
-                gain.gain.value = 0.15;
-                osc.start();
-                osc.stop(audioCtx.currentTime + (success ? 0.12 : 0.25));
+                osc.type = 'sawtooth';
+                osc.frequency.value = 180;
+                gain.gain.value = 0.25;
+                osc.start(now);
+                osc.stop(now + 0.4);
             } catch (e) { /* بێدەنگ */ }
         }
 
@@ -3249,6 +3306,7 @@
         async function completeSale() {
             if (_saleProcessing) return;
             if (cart.length === 0) {
+                playSaleErrorSound();
                 alert('تکایە یەک کاڵا بەلانی کەمەوە زیادبکە!');
                 return;
             }
@@ -3364,9 +3422,11 @@
             renderCartTabs();
 
             showToast('✅ فرۆشتن بەسەرکەوتوویی تۆمارکرا! پسوولە: ' + invoiceNo);
+            playSaleSuccessSound();
             } catch(err) {
                 console.error('completeSale error:', err);
                 showToast('❌ کێشەیەک ڕوویدا لە تۆمارکردنی فرۆشتن', 'error');
+                playSaleErrorSound();
             } finally {
                 _saleProcessing = false;
             }
