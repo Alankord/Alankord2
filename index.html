@@ -2378,14 +2378,17 @@
         async function handleScannedBarcode(barcode) {
             barcode = (barcode || '').trim();
             if (!barcode) return;
-            // ڕاستەوخۆ لە localStorage بخوێنەوە — نەک Firebase — بۆ کەمکردنی reads
             const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.barcode === barcode || (Array.isArray(p.extraBarcodes) && p.extraBarcodes.includes(barcode)));
 
             const input = document.getElementById('barcodeInput');
+            const usedQty = scanMultiplier;
+            scanMultiplier = 1;
+
             if (product) {
-                await addToCart(product.id);
-                showToast('✅ زیادکرا: ' + product.name);
+                await addToCart(product.id, usedQty);
+                const label = usedQty > 1 ? ` (× ${usedQty})` : '';
+                showToast('✅ زیادکرا: ' + product.name + label);
                 if (input) {
                     input.classList.remove('scan-error');
                     input.classList.add('scan-success');
@@ -2402,8 +2405,18 @@
                     setTimeout(() => input.classList.remove('scan-error'), 800);
                 }
             }
-            // هەمیشە خۆکارانە بگەرێوە بۆ خانەی بارکۆد، تاکوو سکانی دواتر (کامێرا یان USB/بلوتوس) ڕاستەوخۆ بکەوێتە ئەم خانەیە
             if (input) setTimeout(() => input.focus(), 100);
+        }
+
+        function updateMultiplierIndicator() {
+            const ind = document.getElementById('multiplierIndicator');
+            if (!ind) return;
+            if (scanMultiplier > 1) {
+                ind.style.display = 'block';
+                ind.textContent = `🔢 × ${scanMultiplier} — سکانی داهاتوو ${scanMultiplier} دانە زیاد دەکات`;
+            } else {
+                ind.style.display = 'none';
+            }
         }
 
         // ==================== Data Functions ====================
@@ -2988,6 +3001,7 @@
         });
 
         let lastSale = null;
+        let scanMultiplier = 1; // ژمارەکار بۆ سکانی داهاتوو
 
         function renderCartTabs() {
             let tabsEl = document.getElementById('cartTabs');
@@ -3099,7 +3113,8 @@
             }).join('');
         }
 
-        async function addToCart(productId) {
+        async function addToCart(productId, qty) {
+            qty = (qty && qty > 0) ? Math.floor(qty) : 1;
             const products = JSON.parse(localStorage.getItem('products') || '[]');
             const product = products.find(p => p.id === productId);
 
@@ -3111,7 +3126,7 @@
             const existingItem = cart.find(item => item.productId === productId);
 
             if (existingItem) {
-                existingItem.quantity++;
+                existingItem.quantity += qty;
             } else {
                 cart.unshift({
                     productId: product.id,
@@ -3120,12 +3135,12 @@
                     cost: product.cost || 0,
                     barcode: product.barcode,
                     unit: product.unit || 'دانە',
-                    quantity: 1
+                    quantity: qty
                 });
             }
 
             // ئاگادارکردنەوە (بەبێ ڕاگرتن) ئەگەر بڕی داواکراو لە کۆگا زیاتر بێت
-            const askedQty = existingItem ? existingItem.quantity : 1;
+            const askedQty = existingItem ? existingItem.quantity : qty;
             if (product.quantity - askedQty < 0) {
                 showToast(`⚠️ ${product.name}: کۆگا نامێنێت، بڕی کۆگا دەچێتە ژێر سفر`, 'warning');
             }
@@ -5230,24 +5245,67 @@
 
                 barcodeInput.addEventListener('keypress', async function(e) {
                     if (e.key === 'Enter') {
-                        // ڕاگرتنی debounce timer بۆ ئەوەی دووجار فایر نەکات
                         if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
-                        const barcode = this.value.trim();
-                        if (barcode) {
-                            await handleScannedBarcode(barcode);
+                        const raw = this.value.trim();
+                        if (!raw) return;
+                        // فۆرمەتی: 2=بارکۆد لە یەک خانەدا
+                        const comboMatch = raw.match(/^(\d+)=(.+)$/);
+                        if (comboMatch) {
+                            const qty = parseInt(comboMatch[1]);
+                            const bc = comboMatch[2].trim();
+                            if (qty >= 1 && qty <= 99 && bc) {
+                                scanMultiplier = qty;
+                                await handleScannedBarcode(bc);
+                            }
+                            return;
                         }
+                        // فۆرمەتی: 2= تەنها (ژمارەکار دادەنرێت، چاوەڕێی سکانی داهاتوو)
+                        const multOnly = raw.match(/^(\d+)=$/) || raw.match(/^=(\d+)$/);
+                        if (multOnly) {
+                            const n = parseInt(multOnly[1]);
+                            if (n >= 1 && n <= 99) {
+                                scanMultiplier = n;
+                            }
+                            this.value = '';
+                            return;
+                        }
+                        await handleScannedBarcode(raw);
                     }
                 });
 
-                // ئۆتۆماتیکی: ئەگەر سکانەر Enter نەنێرێت، چاوەڕێی وەستانی نووسین دەکەین (debounce)
-                // هەر پیتێک کە دێت کاتژمێرەکە لەسەر نوێ دەکرێتەوە، تەنیا کاتێک نووسین بە تەواوی وەستا (80ms) بارکۆدەکە دەسەلمێنین
                 barcodeInput.addEventListener('input', function() {
                     if (scanTimer) clearTimeout(scanTimer);
-                    if (this.value.trim().length < 8) return;
+                    const raw = this.value.trim();
+                    if (!raw) return;
+                    // فۆرمەتی: 2=بارکۆد — ئۆتۆماتیکی بەبێ Enter
+                    const comboMatch = raw.match(/^(\d+)=(.+)$/);
+                    if (comboMatch) {
+                        const bc = comboMatch[2].trim();
+                        if (bc.length >= 4) {
+                            scanTimer = setTimeout(async () => {
+                                scanTimer = null;
+                                const finalRaw = barcodeInput.value.trim();
+                                const finalMatch = finalRaw.match(/^(\d+)=(.+)$/);
+                                if (finalMatch) {
+                                    const finalQty = parseInt(finalMatch[1]);
+                                    const finalBc = finalMatch[2].trim();
+                                    if (finalQty >= 1 && finalQty <= 99 && finalBc.length >= 4) {
+                                        scanMultiplier = finalQty;
+                                        await handleScannedBarcode(finalBc);
+                                    }
+                                }
+                            }, 80);
+                        }
+                        return;
+                    }
+                    // ئەگەر تەنها ژمارە و = نووسرا، چاوەڕێ بکە
+                    if (raw.endsWith('=') || raw.startsWith('=')) return;
+                    // بارکۆدی ئادی
+                    if (raw.length < 8) return;
                     scanTimer = setTimeout(async () => {
                         scanTimer = null;
                         const finalValue = this.value.trim();
-                        if (finalValue.length >= 8) {
+                        if (finalValue.length >= 8 && !finalValue.includes('=')) {
                             await handleScannedBarcode(finalValue);
                         }
                     }, 80);
