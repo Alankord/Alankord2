@@ -2187,8 +2187,12 @@
             }
         }
 
+        let lastOnlineSync = 0;
         window.addEventListener('online', async () => {
             if (OFFLINE_MODE) return; // ئەگەر ئۆفلاین مۆد چالاکە، sync مەکە
+            const now = Date.now();
+            if (now - lastOnlineSync < 300000) return; // 5 خولەک جارێک، نەک هەموو جارێک ئینتەرنێت بگەڕێتەوە
+            lastOnlineSync = now;
             updateConnectionStatus('syncing');
             showToast('🔄 ئینتەرنێت گەڕایەوە، sync دەستپێدەکات...', 'success');
             await processSyncQueue();
@@ -2440,6 +2444,39 @@
             } catch (error) {
                 console.error('Error saving product:', error);
                 queueForSync('product', product);
+                return false;
+            }
+        }
+
+        // نوێکردنەوەی چەند کاڵا بە یەک نووسینی Firebase (Batch Write)
+        // بەکاردێت لە completeSale بۆ ئەوەی لە جێگەی یەک نووسین بۆ هەر کاڵا، هەموو کاڵاکان بە یەک ڕەفتی تەنیا بنووسرێن
+        async function batchSaveProducts(updatedProducts) {
+            if (!updatedProducts.length) return;
+
+            // هەمیشە localStorage ڕاستەوخۆ نوێ بکەرەوە (ئۆنلاین و ئۆفلاین هەردووکیان)
+            const allProducts = JSON.parse(localStorage.getItem('products') || '[]');
+            updatedProducts.forEach(up => {
+                up.updatedAt = new Date().toISOString();
+                const idx = allProducts.findIndex(p => p.id === up.id);
+                if (idx >= 0) { allProducts[idx] = up; } else { allProducts.push(up); }
+            });
+            localStorage.setItem('products', JSON.stringify(allProducts));
+
+            if (OFFLINE_MODE || !navigator.onLine) {
+                updatedProducts.forEach(up => queueForSync('product', up));
+                return false;
+            }
+            try {
+                const batch = db.batch();
+                updatedProducts.forEach(up => {
+                    const ref = db.collection('products').doc(up.id.toString());
+                    batch.set(ref, up);
+                });
+                await batch.commit(); // ← هەموو کاڵاکان بە یەک نووسین بۆ Firebase دەنێردرێن
+                return true;
+            } catch (error) {
+                console.error('Error batch-saving products:', error);
+                updatedProducts.forEach(up => queueForSync('product', up));
                 return false;
             }
         }
@@ -2878,8 +2915,8 @@
             showToast('✅ دووبارەکان سڕانەوە - ' + sales.length + ' فرۆشتن ماندووە', 'success');
         }
 
-        // Auto-sync every 30 seconds
-        setInterval(processSyncQueue, 30000);
+        // Auto-sync every 5 minutes (لە 30 چرکە گۆڕدرا بۆ 5 خولەک بۆ کەمکردنەوەی بەکارهێنانی Quota)
+        setInterval(processSyncQueue, 300000);
 
         // ==================== Initialize with Sample Data ====================
         async function initializeData() {
@@ -3336,6 +3373,8 @@
             // invoiceNo already captured above
 
             // Update product quantities (تەنیا کاڵا - کارت بڕی کۆگای نییە)
+            // هەموو کاڵای گۆڕاو کۆدەکەینەوە و یەک Batch Write دەنێرین، نەک نووسینێک بۆ هەر کاڵا
+            const changedProducts = [];
             for (const item of goodsItems) {
                 // پاکێتەکان: بەکارهێنانی _realProductId و _pkgSize بۆ کەمکردنەوەی کۆگای ڕاستەقینە
                 const realId = item._realProductId || item.productId;
@@ -3343,9 +3382,10 @@
                 if (product) {
                     const deduct = item._pkgSize ? (item.quantity * item._pkgSize) : item.quantity;
                     product.quantity -= deduct;
-                    await saveProduct(product);
+                    changedProducts.push(product);
                 }
             }
+            await batchSaveProducts(changedProducts);
 
             // Get customer info
             const customers = await syncCustomers();
