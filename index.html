@@ -2696,87 +2696,113 @@
             localStorage.setItem('syncQueue', JSON.stringify(queue));
         }
 
+        // نوێکردنەوەی Sync Queue بە Batch Write — هەموو نووسینەکان بە یەک (یان چەند) ناردنی batch دەنێردرێن بۆ Firestore
+        // بەلای کەمەوە ١ نووسینی Firestore بۆ هەر ٤٥٠ دانە لە queue (سنووری Firestore ٥٠٠ کرداری هەر batch-ێکە)
         async function processSyncQueue() {
             const queue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
             if (queue.length === 0) return;
 
             updateConnectionStatus('syncing');
-            const newQueue = [];
 
-            for (const item of queue) {
-                try {
-                    switch (item.type) {
-                        case 'product':
-                            await db.collection('products').doc(item.data.id.toString()).set(item.data);
-                            break;
-                        case 'deleteProduct':
-                            await db.collection('products').doc(item.data.id.toString()).delete();
-                            break;
-                        case 'customer':
-                            await db.collection('customers').doc(item.data.id.toString()).set(item.data);
-                            break;
-                        case 'deleteCustomer':
-                            await db.collection('customers').doc(item.data.id.toString()).delete();
-                            break;
-                        case 'sale': {
-                            const saleData = Object.assign({}, item.data);
-                            const invoiceNoToSync = saleData.invoiceNo;
-                            delete saleData.localId;
-                            delete saleData.offlineSaved;
-                            // set() بەجێی add() — ئەگەر پێشتر هەبێت، دووبارە نانووسێت
-                            await db.collection('sales').doc(invoiceNoToSync).set(saleData);
-                            // localStorage نوێبکەرەوە
-                            const lsSales = JSON.parse(localStorage.getItem('sales') || '[]');
-                            const idx = lsSales.findIndex(s => s.invoiceNo === invoiceNoToSync);
-                            if (idx >= 0) { lsSales[idx].id = invoiceNoToSync; lsSales[idx].offlineSaved = false; delete lsSales[idx].localId; }
-                            localStorage.setItem('sales', JSON.stringify(lsSales));
-                            break;
-                        }
-                        case 'card':
-                            await db.collection('cards').doc(item.data.id.toString()).set(item.data);
-                            break;
-                        case 'deleteCard':
-                            await db.collection('cards').doc(item.data.id.toString()).delete();
-                            break;
-                        case 'cardSale': {
-                            const csData = Object.assign({}, item.data);
-                            delete csData.offlineSaved;
-                            await db.collection('cardSales').doc(csData.id).set(csData);
-                            const lsCardSales = JSON.parse(localStorage.getItem('cardSales') || '[]');
-                            const csIdx = lsCardSales.findIndex(s => s.id === csData.id);
-                            if (csIdx >= 0) lsCardSales[csIdx].offlineSaved = false;
-                            localStorage.setItem('cardSales', JSON.stringify(lsCardSales));
-                            break;
-                        }
-                        case 'deleteCardSale':
-                            await db.collection('cardSales').doc(item.data.id.toString()).delete();
-                            break;
-                        case 'generalReceipt':
-                            await db.collection('settings').doc('generalReceipt').set(item.data);
-                            break;
-                        case 'returnSale': {
-                            const retData = Object.assign({}, item.data);
-                            const retInvoice = retData.invoiceNo;
-                            const retCreated = retData.createdAt;
-                            delete retData.localId;
-                            delete retData.offlineSaved;
-                            // بچەکبکە لە localStorage
-                            const lsRets = JSON.parse(localStorage.getItem('returns') || '[]');
-                            const dupRet = lsRets.find(r => r.invoiceNo === retInvoice && r.createdAt === retCreated && r.offlineSaved === false);
-                            if (!dupRet) {
-                                await db.collection('returns').add(retData);
+            const CHUNK_SIZE = 450; // کەمتر لە سنووری ٥٠٠ی Firestore بۆ پارێزگاری
+            const failedItems = [];
+
+            for (let i = 0; i < queue.length; i += CHUNK_SIZE) {
+                const chunk = queue.slice(i, i + CHUNK_SIZE);
+                const batch = db.batch();
+                const postActions = []; // کارەکانی دوای commit (نوێکردنەوەی localStorage)
+                const chunkItems = []; // دانەکانی ئەم چەنکە کە بە سەرکەوتووی ئامادەکراون بۆ batch
+
+                for (const item of chunk) {
+                    try {
+                        switch (item.type) {
+                            case 'product':
+                                batch.set(db.collection('products').doc(item.data.id.toString()), item.data);
+                                break;
+                            case 'deleteProduct':
+                                batch.delete(db.collection('products').doc(item.data.id.toString()));
+                                break;
+                            case 'customer':
+                                batch.set(db.collection('customers').doc(item.data.id.toString()), item.data);
+                                break;
+                            case 'deleteCustomer':
+                                batch.delete(db.collection('customers').doc(item.data.id.toString()));
+                                break;
+                            case 'sale': {
+                                const saleData = Object.assign({}, item.data);
+                                const invoiceNoToSync = saleData.invoiceNo;
+                                delete saleData.localId;
+                                delete saleData.offlineSaved;
+                                // set() بەجێی add() — ئەگەر پێشتر هەبێت، دووبارە نانووسێت
+                                batch.set(db.collection('sales').doc(invoiceNoToSync), saleData);
+                                postActions.push(() => {
+                                    const lsSales = JSON.parse(localStorage.getItem('sales') || '[]');
+                                    const idx = lsSales.findIndex(s => s.invoiceNo === invoiceNoToSync);
+                                    if (idx >= 0) { lsSales[idx].id = invoiceNoToSync; lsSales[idx].offlineSaved = false; delete lsSales[idx].localId; }
+                                    localStorage.setItem('sales', JSON.stringify(lsSales));
+                                });
+                                break;
                             }
-                            break;
+                            case 'card':
+                                batch.set(db.collection('cards').doc(item.data.id.toString()), item.data);
+                                break;
+                            case 'deleteCard':
+                                batch.delete(db.collection('cards').doc(item.data.id.toString()));
+                                break;
+                            case 'cardSale': {
+                                const csData = Object.assign({}, item.data);
+                                delete csData.offlineSaved;
+                                batch.set(db.collection('cardSales').doc(csData.id), csData);
+                                postActions.push(() => {
+                                    const lsCardSales = JSON.parse(localStorage.getItem('cardSales') || '[]');
+                                    const csIdx = lsCardSales.findIndex(s => s.id === csData.id);
+                                    if (csIdx >= 0) lsCardSales[csIdx].offlineSaved = false;
+                                    localStorage.setItem('cardSales', JSON.stringify(lsCardSales));
+                                });
+                                break;
+                            }
+                            case 'deleteCardSale':
+                                batch.delete(db.collection('cardSales').doc(item.data.id.toString()));
+                                break;
+                            case 'generalReceipt':
+                                batch.set(db.collection('settings').doc('generalReceipt'), item.data);
+                                break;
+                            case 'returnSale': {
+                                const retData = Object.assign({}, item.data);
+                                const retInvoice = retData.invoiceNo;
+                                const retCreated = retData.createdAt;
+                                delete retData.localId;
+                                delete retData.offlineSaved;
+                                // بچەکبکە لە localStorage بۆ دووبارەبوون
+                                const lsRets = JSON.parse(localStorage.getItem('returns') || '[]');
+                                const dupRet = lsRets.find(r => r.invoiceNo === retInvoice && r.createdAt === retCreated && r.offlineSaved === false);
+                                if (!dupRet) {
+                                    // add() ناتوانرێت لەناو batch بەکاربهێنرێت — ڕیفێرنسی ID-دار پێشوەخت دروستبکە
+                                    const newRetRef = db.collection('returns').doc();
+                                    batch.set(newRetRef, retData);
+                                }
+                                break;
+                            }
                         }
+                        chunkItems.push(item);
+                    } catch (error) {
+                        console.error('Failed to prepare sync item:', item.type, error);
+                        failedItems.push(item);
                     }
+                }
+
+                try {
+                    // یەک نووسین بۆ Firebase بۆ هەموو ئەم چەنکە (لە جیاتی یەک بە یەک)
+                    await batch.commit();
+                    postActions.forEach(fn => fn());
                 } catch (error) {
-                    console.error('Failed to sync:', item.type, error);
-                    newQueue.push(item);
+                    console.error('Batch sync failed:', error);
+                    failedItems.push(...chunkItems);
                 }
             }
 
-            localStorage.setItem('syncQueue', JSON.stringify(newQueue));
-            updateConnectionStatus(newQueue.length === 0 ? 'online' : 'offline');
+            localStorage.setItem('syncQueue', JSON.stringify(failedItems));
+            updateConnectionStatus(failedItems.length === 0 ? 'online' : 'offline');
         }
 
         function updateSyncBtnLabel() {
