@@ -2137,6 +2137,15 @@
         let OFFLINE_MODE = true; // true بکە کاتێک quota تەواوبوو
 
         function toggleOfflineMode() {
+            const goingOnline = OFFLINE_MODE; // ئێستا ئۆفلاینین، دەمانەوێت بچینە ئۆنلاین
+            if (goingOnline) {
+                const pin = prompt('بۆ چوونە دۆخی ئۆنلاین و هاوکاتکردن، کۆدی نهێنی (PIN) بنووسە:');
+                if (pin === null) return; // پاشگەزبوونەوە
+                if (pin.trim() !== getSharedPin()) {
+                    alert('❌ کۆدی نهێنی هەڵەیە - چوونە ئۆنلاین هەڵوەشایەوە');
+                    return;
+                }
+            }
             OFFLINE_MODE = !OFFLINE_MODE;
             const btn = document.getElementById('offlineModeBtn');
             if (OFFLINE_MODE) {
@@ -2151,8 +2160,21 @@
                 btn.style.borderColor = 'var(--green)';
                 btn.style.color = 'var(--green)';
                 btn.style.background = 'var(--green-dim)';
-                updateConnectionStatus('online');
-                showToast('🟢 حالتی ئۆنلاین - Firebase چالاکبوو', 'success');
+                updateConnectionStatus('syncing');
+                showToast('🟢 حالتی ئۆنلاین - هاوکاتکردن دەستپێدەکات...', 'success');
+                processSyncQueue().then(async () => {
+                    await syncProducts();
+                    await syncCustomers();
+                    updateConnectionStatus('online');
+                    showToast('✅ هاوکاتکردن تەواو بوو', 'success');
+                    const reportsSection = document.getElementById('reportsSection');
+                    if (reportsSection && reportsSection.classList.contains('active')) {
+                        await loadReports();
+                    }
+                }).catch((err) => {
+                    console.error('Sync error after going online:', err);
+                    updateConnectionStatus('online');
+                });
             }
         }
 
@@ -2592,6 +2614,7 @@
         async function saveSale(sale) {
             if (OFFLINE_MODE || !navigator.onLine) {
                 sale.offlineSaved = true;
+                sale.id = sale.id || sale.invoiceNo;
                 sale.localId = sale.localId || ('local-' + Date.now());
                 // تەنیا یەکجار بنووسە بۆ queue — ئەگەر پێشتر هەبوو نەیزیادبکە
                 const existingQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
@@ -2621,6 +2644,7 @@
             } catch (error) {
                 console.error('Error saving sale:', error);
                 sale.offlineSaved = true;
+                sale.id = sale.id || sale.invoiceNo;
                 sale.localId = sale.localId || ('local-' + Date.now());
                 const existingQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
                 const alreadyQueued = existingQueue.find(q => q.type === 'sale' && q.data.invoiceNo === sale.invoiceNo);
@@ -2633,6 +2657,8 @@
                 return false;
             }
         }
+
+
 
         // ==================== گەڕاندنەوەی فرۆشتن (Returns) ====================
         async function syncReturns() {
@@ -4880,9 +4906,12 @@
             return { start, end };
         }
 
+        let cachedSalesForReports = [];
+
         async function loadReports() {
             console.log('Loading reports...');
             const sales = await syncSales();
+            cachedSalesForReports = sales;
             const products = await syncProducts();
             const customers = await syncCustomers();
             const returns = await syncReturns();
@@ -5028,9 +5057,9 @@
                         <td>${paymentMethodText[s.paymentMethod] || s.paymentMethod || 'N/A'}</td>
                         <td>
                             <button class="btn btn-info" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
-                                    onclick="viewReceipt('${s.id}')">🖨️ پسوڵە</button>
+                                    onclick="viewReceipt('${s.id || s.invoiceNo}')">🖨️ پسوڵە</button>
                             <button class="btn btn-warning" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" 
-                                    onclick="openReturnModal('${s.id}')">↩️ گەڕاندنەوە</button>
+                                    onclick="openReturnModal('${s.id || s.invoiceNo}')">↩️ گەڕاندنەوە</button>
                         </td>
                     </tr>
                 `;
@@ -5082,9 +5111,18 @@
             });
         }
 
-        function viewReceipt(id) {
-            const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-            const sale = sales.find(s => s.id === id);
+        async function viewReceipt(id) {
+            let sale = cachedSalesForReports.find(s => s.id === id || s.invoiceNo === id);
+            if (!sale) {
+                const localSales = JSON.parse(localStorage.getItem('sales') || '[]');
+                sale = localSales.find(s => s.id === id || s.invoiceNo === id);
+            }
+            if (!sale) {
+                // داتای ناوخۆیی نوێ نییە، بۆیە دووبارە لە سێرڤەرەوە هاوکات دەکەینەوە
+                const freshSales = await syncSales();
+                cachedSalesForReports = freshSales;
+                sale = freshSales.find(s => s.id === id || s.invoiceNo === id);
+            }
             if (sale) {
                 printReceipt(sale);
             } else {
@@ -5096,8 +5134,16 @@
         let currentReturnSale = null;
 
         async function openReturnModal(saleId) {
-            const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-            const sale = sales.find(s => s.id === saleId);
+            let sale = cachedSalesForReports.find(s => s.id === saleId || s.invoiceNo === saleId);
+            if (!sale) {
+                const localSales = JSON.parse(localStorage.getItem('sales') || '[]');
+                sale = localSales.find(s => s.id === saleId || s.invoiceNo === saleId);
+            }
+            if (!sale) {
+                const freshSales = await syncSales();
+                cachedSalesForReports = freshSales;
+                sale = freshSales.find(s => s.id === saleId || s.invoiceNo === saleId);
+            }
             if (!sale) {
                 showToast('پسوڵە نەدۆزرایەوە!', 'error');
                 return;
